@@ -1,0 +1,218 @@
+{
+  "format": "mybook-project",
+  "version": 1,
+  "exportedAt": "2026-09-25T00:00:00.000Z",
+  "application": {
+    "name": "MyBook",
+    "version": "0.3.8"
+  },
+  "project": {
+    "title": "Manuale di MyBook",
+    "subtitle": "Guida rapida",
+    "author": "MyBook",
+    "description": "Progetto dimostrativo importato automaticamente al primo avvio, per scoprire le funzionalità principali dell'app.",
+    "notes": "",
+    "plot": "",
+    "fabula": ""
+  },
+  "settings": "{}",
+  "data": {
+    "documentNodes": [
+      {
+        "id": "chapter-1",
+        "node_type": "chapter",
+        "title": "Come iniziare",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 0,
+        "content": "{}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": null
+      },
+      {
+        "id": "scene-1",
+        "node_type": "scene",
+        "title": "Benvenuto in MyBook",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "completo",
+        "order_index": 0,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Questo \\u00e8 un piccolo progetto dimostrativo, importato automaticamente al primo avvio di MyBook.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Puoi leggerlo per farti un'idea di come \\u00e8 organizzata l'app, oppure eliminarlo in qualsiasi momento dall'elenco Progetti: non fa parte del tuo lavoro, \\u00e8 solo un esempio.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Ogni sezione qui sotto \\u00e8 una scena, come lo sarebbero i capitoli del tuo romanzo. Prova a modificarne una: vedrai il salvataggio automatico e, nel registro attivit\\u00e0 (Impostazioni > Log), la voce che lo segnala.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-2",
+        "node_type": "scene",
+        "title": "Il Manoscritto",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "completo",
+        "order_index": 1,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Il Manoscritto \\u00e8 organizzato in Capitoli e Scene, raggruppabili in Gruppi (utile per dividere il romanzo in parti). Nell'albero a sinistra puoi trascinare per riordinare o spostare, e ogni scena ha uno stato \\u2014 Idea, Bozza, Revisione, Finito \\u2014 mostrato con un pallino colorato.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Il titolo della finestra riflette sempre dove ti trovi: quando stai scrivendo una scena, mostra anche il capitolo e la scena aperti.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Ogni scena tiene automaticamente lo storico delle revisioni, cos\\u00ec puoi tornare a una versione precedente del testo in qualunque momento.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-3",
+        "node_type": "scene",
+        "title": "Personaggi, Località, Oggetti",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "bozza",
+        "order_index": 2,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Queste tre sezioni tengono le schede di chi e cosa popola la tua storia. Da ciascuna scheda puoi vedere, a destra, in quali capitoli e scene quel personaggio, luogo o oggetto \\u00e8 stato taggato nel testo \\u2014 e cliccando ci si sposta direttamente l\\u00ec, con il cursore sulla parola taggata.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Per taggare una parola mentre scrivi, selezionala e usa il menu contestuale (tasto destro) dell'editor: comparir\\u00e0 la voce \\\"Aggiungi tag\\u2026\\\".\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-4",
+        "node_type": "scene",
+        "title": "Timeline e Mappa concettuale",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 3,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"La Timeline tiene gli eventi della storia, con una Data narrativa libera (\\\"Anno 1200\\\", \\\"Il terzo giorno\\\") e, se vuoi, anche una Data reale selezionabile da calendario.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"La Mappa concettuale ti permette di collegare visivamente personaggi, luoghi, oggetti e capitoli, per tenere d'occhio le relazioni tra loro.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-5",
+        "node_type": "scene",
+        "title": "Statistiche",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 4,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"La scheda Principale mostra parole, caratteri e l'avanzamento di scene e capitoli completati.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"La scheda Analisi va pi\\u00f9 a fondo: frasi, paragrafi, cartelle editoriali, tempo di lettura stimato, le parole pi\\u00f9 usate e, per ogni capitolo, quali tag vi compaiono e quante volte.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-6",
+        "node_type": "scene",
+        "title": "Registro attività e Impostazioni",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 5,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"MyBook tiene un registro (Log) di ci\\u00f2 che fai in un progetto \\u2014 scene create, modificate, spostate, personaggi aggiunti e cos\\u00ec via \\u2014 consultabile in Impostazioni. Alla chiusura di un progetto puoi lasciarti una nota \\\"To Do\\\" per la volta successiva, che ritroverai in un piccolo riepilogo quando lo riapri.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"In Impostazioni puoi anche regolare aspetto, dimensione del testo, lingua, correttore ortografico e molto altro. Buona scrittura!\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      }
+    ],
+    "characters": [
+      {
+        "id": "char-1",
+        "name": "Aria",
+        "role": "Protagonista (esempio)",
+        "description": "Una protagonista d'esempio: sostituiscila pure con i tuoi personaggi.",
+        "avatar_path": null,
+        "notes": "",
+        "custom_fields": "[]",
+        "tags": ""
+      }
+    ],
+    "locations": [
+      {
+        "id": "loc-1",
+        "name": "La Torre di Vetro",
+        "parent_id": null,
+        "description": "Una località d'esempio.",
+        "image_path": null,
+        "notes": "",
+        "custom_fields": "[]",
+        "tags": ""
+      }
+    ],
+    "objects": [
+      {
+        "id": "obj-1",
+        "name": "La Bussola di Rame",
+        "description": "Un oggetto d'esempio.",
+        "image_path": null,
+        "notes": "",
+        "custom_fields": "[]",
+        "tags": ""
+      }
+    ],
+    "timelines": [
+      {
+        "id": "timeline-1",
+        "name": "Timeline principale",
+        "order_index": 0
+      }
+    ],
+    "timelineEvents": [
+      {
+        "id": "event-1",
+        "timeline_id": "timeline-1",
+        "title": "Fondazione del Regno",
+        "description": "Un evento d'esempio nella Timeline.",
+        "event_date": "Anno 1",
+        "calendar_date": "",
+        "order_index": 0,
+        "notes": ""
+      }
+    ],
+    "mindmaps": [
+      {
+        "id": "mindmap-1",
+        "name": "Mappa principale",
+        "order_index": 0
+      }
+    ],
+    "mindmapNodes": [
+      {
+        "id": "mmnode-1",
+        "mindmap_id": "mindmap-1",
+        "node_type": "character",
+        "ref_id": "char-1",
+        "label": "Aria",
+        "description": "",
+        "group_id": null,
+        "pos_x": 100,
+        "pos_y": 100,
+        "color": ""
+      },
+      {
+        "id": "mmnode-2",
+        "mindmap_id": "mindmap-1",
+        "node_type": "location",
+        "ref_id": "loc-1",
+        "label": "La Torre di Vetro",
+        "description": "",
+        "group_id": null,
+        "pos_x": 350,
+        "pos_y": 100,
+        "color": ""
+      }
+    ],
+    "mindmapEdges": [
+      {
+        "id": "mmedge-1",
+        "mindmap_id": "mindmap-1",
+        "source_node_id": "mmnode-1",
+        "target_node_id": "mmnode-2",
+        "label": "vive presso",
+        "style": "solid"
+      }
+    ]
+  }
+}

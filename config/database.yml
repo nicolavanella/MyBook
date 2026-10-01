@@ -1,0 +1,42 @@
+# =============================================================================
+# MyBook — config/database.yml
+# Parametri consigliati per database, autosave e versioning (sezione 7 e 11
+# del documento di architettura). Letto da src/main/database/db.ts all'avvio;
+# valori qui sotto sono i default, sovrascrivibili dalle project_settings.
+# =============================================================================
+
+database:
+  # Nome del file SQLite. Il percorso completo viene risolto a runtime come
+  # <userData>/MyBook/data/<filename> — MAI dentro alla cartella di installazione.
+  filename: mybook.db
+  data_subdir: MyBook/data
+
+  pragmas:
+    foreign_keys: ON
+    journal_mode: WAL
+    synchronous: NORMAL
+    busy_timeout_ms: 5000
+
+autosave:
+  # Tempo di inattività digitazione prima di scrivere il current state su SQLite.
+  debounce_ms: 800
+
+versioning:
+  # Inattività "significativa" dopo la quale il current state autosalvato
+  # viene promosso a document_revisions (snapshot immutabile).
+  revision_after_idle_ms: 30000
+  # In alternativa (o in aggiunta) alla pausa: crea comunque una revisione
+  # dopo N modifiche accumulate, anche se l'utente continua a scrivere senza pause.
+  revision_after_n_changes: 100
+  # Ogni quante revisioni creare uno snapshot completo in document_snapshots,
+  # per evitare di dover riapplicare lunghe catene di document_changes.
+  snapshot_every_n_revisions: 20
+  # Eventi che forzano sempre una nuova revisione, indipendentemente dai timer.
+  force_revision_on:
+    - document_change   # cambio scena/capitolo attivo nell'editor
+    - app_close
+    - manual_request
+
+migrations:
+  directory: database/migrations
+  table: schema_migrations

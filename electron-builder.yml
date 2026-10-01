@@ -1,0 +1,52 @@
+appId: com.mybook.app
+productName: MyBook
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - out/**/*
+  - package.json
+
+# Lo schema SQL, gli asset di migrazione e il config vengono copiati come
+# risorse extra così il main process può leggerli a runtime (fuori dal
+# bundle asar) — vedi src/main/config.ts e src/main/database/db.ts.
+extraResources:
+  - from: database/migrations
+    to: database/migrations
+  - from: config/database.yml
+    to: config/database.yml
+  # icon.png è anche usato a runtime (icona della BrowserWindow, non solo
+  # icona del pacchetto nativo) — vedi resolveIconPath() in src/main/index.ts.
+  - from: build/icon.png
+    to: icon.png
+  # Licenza (link cliccabile in Info) e progetto-manuale importato al primo
+  # avvio (vedi src/main/index.ts, importManualOnFirstLaunchIfNeeded).
+  - from: LICENSE
+    to: LICENSE
+  - from: resources/Manuale.mybook.json
+    to: Manuale.mybook.json
+
+asarUnpack:
+  - '**/*.node' # moduli nativi come better-sqlite3
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.productivity
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: Office
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

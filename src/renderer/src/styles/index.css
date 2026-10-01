@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+/*
+ * Tema scuro: invece di aggiungere varianti dark: a ogni singola classe in
+ * decine di componenti, si ridefiniscono qui i colori delle utility Tailwind
+ * più usate nell'app (sfondi, bordi, testo) sotto lo scope .dark applicato
+ * a <html> da useTheme.ts. Copre la stragrande maggioranza della UI senza
+ * dover toccare ogni file; eventuali colori molto specifici (badge di stato,
+ * evidenziatore nell'editor, ecc.) restano invariati di proposito, per non
+ * perdere leggibilità/significato semantico del colore.
+ */
+.dark {
+  color-scheme: dark;
+}
+.dark body {
+  background-color: #18181b;
+  color: #e4e4e7;
+}
+.dark .bg-white { background-color: #232326; }
+.dark .bg-gray-50 { background-color: #1f1f22; }
+.dark .bg-gray-100 { background-color: #2a2a2e; }
+.dark .bg-gray-200 { background-color: #333338; }
+.dark .bg-black\/30 { background-color: rgba(0, 0, 0, 0.6); }
+
+.dark .text-gray-400 { color: #8b8b93; }
+.dark .text-gray-500 { color: #a0a0a8; }
+.dark .text-gray-600 { color: #b4b4bc; }
+.dark .text-gray-700 { color: #c8c8d0; }
+.dark .text-gray-800 { color: #e4e4e7; }
+.dark .text-gray-900 { color: #f4f4f5; }
+
+.dark .border-gray-100 { border-color: #2f2f33; }
+.dark .border-gray-200 { border-color: #38383e; }
+.dark .border-gray-300 { border-color: #46464d; }
+
+.dark .hover\:bg-gray-50:hover { background-color: #2a2a2e; }
+.dark .hover\:bg-gray-100:hover { background-color: #333338; }
+.dark .hover\:bg-gray-200:hover { background-color: #3d3d44; }
+
+.dark .prose { color: #e4e4e7; }
+.dark input, .dark textarea, .dark select {
+  background-color: #232326;
+  color: #e4e4e7;
+}
+
+/*
+ * Campo di testo dell'editor (SceneEditor): prima aveva lo stesso sfondo
+ * della pagina circostante, rendendo poco chiaro dove iniziasse l'area di
+ * scrittura. Qui gli si dà un tono di "carta" volutamente più scuro del
+ * bianco puro della pagina, come richiesto. In tema scuro la pagina
+ * (#18181b) è già molto scura: scendere ancora comprometterebbe la
+ * leggibilità del testo chiaro, quindi lì si usa invece un tono leggermente
+ * più CHIARO della pagina (superficie "elevata"), che ottiene lo stesso
+ * risultato — un contorno ben distinguibile — restando leggibile.
+ */
+.editor-surface { background-color: #f1efe8; }
+.dark .editor-surface { background-color: #1f1f22; }
+
+/*
+ * L'editor (ProseMirror/TipTap) è un elemento contenteditable: il browser
+ * gli applica di default lo stesso outline blu di un input in :focus.
+ * Va rimosso esplicitamente ("Rimuovere bordo di selezione").
+ */
+.ProseMirror:focus { outline: none; box-shadow: none; }
+
+/*
+ * Selezione testo nell'editor: senza queste regole, in tema scuro il testo
+ * selezionato ereditava il colore di evidenziazione blu di sistema, poco
+ * leggibile su sfondo scuro ("diventa blu ed è poco leggibile"). Qui si
+ * forza esplicitamente background e colore del testo per entrambi i temi.
+ */
+.ProseMirror ::selection { background-color: rgba(37, 99, 235, 0.22); color: inherit; }
+.dark .ProseMirror ::selection { background-color: rgba(96, 165, 250, 0.35); color: #f4f4f5; }
+
+/*
+ * Commenti al testo: sottolineatura ondulata ambra, distinta dall'evidenziatore
+ * (che usa uno sfondo pieno) per non confondere le due funzioni.
+ */
+.mybook-comment {
+  text-decoration: underline wavy #d97706;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+
+/*
+ * Tag verso Personaggi/Località/Oggetti/Eventi: sottolineatura piena, colore
+ * diverso per tipo così il genere di riferimento è riconoscibile a colpo
+ * d'occhio senza dover passare il mouse. Ctrl/Cmd+click per navigare (vedi
+ * SceneEditor.tsx) — il cursore "pointer" appare solo tenendo premuto il
+ * tasto, per non far pensare che basti un click semplice.
+ */
+.mybook-entity-tag { cursor: text; text-decoration-thickness: 1.5px; text-underline-offset: 2px; }
+.mybook-entity-tag--character { text-decoration: underline solid #7c3aed; }
+.mybook-entity-tag--location { text-decoration: underline solid #16a34a; }
+.mybook-entity-tag--object { text-decoration: underline solid #ca8a04; }
+.mybook-entity-tag--event { text-decoration: underline solid #dc2626; }
+.mybook-entity-dot--character { background-color: #7c3aed; }
+.mybook-entity-dot--location { background-color: #16a34a; }
+.mybook-entity-dot--object { background-color: #ca8a04; }
+.mybook-entity-dot--event { background-color: #dc2626; }
+
+/* Impostazioni > Editor > Abilita tag/commenti: quando disattivati, il mark
+   resta nel documento (i dati non si perdono) ma la sua decorazione visiva
+   viene nascosta, così il testo torna a leggersi come testo normale. */
+.mybook-tags-hidden .mybook-entity-tag { text-decoration: none; cursor: text; }
+.mybook-comments-hidden .mybook-comment { text-decoration: none; }
+
+/* Contrasto delle selezioni in tema scuro. */
+.dark .bg-blue-50 { background-color: #172554; color: #dbeafe; }
+.dark .bg-blue-100 { background-color: #1e3a8a; color: #eff6ff; }
+.dark .hover\:bg-blue-50:hover { background-color: #172554; }
+.dark .hover\:bg-blue-100:hover { background-color: #1e3a8a; }
+.dark .bg-blue-600 { color: #ffffff; }
+.dark .text-blue-600 { color: #93c5fd; }
+.dark .text-blue-700 { color: #bfdbfe; }
+.dark .text-blue-800 { color: #dbeafe; }
+.dark select option { background-color: #232326; color: #f4f4f5; }
