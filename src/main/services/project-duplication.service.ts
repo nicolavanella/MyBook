@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import { v4 as uuid } from 'uuid'
+import { tm } from '../i18n'
 
 /** Duplica un progetto e tutte le relazioni correnti, escludendo volutamente lo storico revisioni/audit. */
 export class ProjectDuplicationService {
@@ -9,9 +10,9 @@ export class ProjectDuplicationService {
     const newProjectId = uuid()
     return this.db.transaction(() => {
       const p=this.db.prepare('SELECT * FROM projects WHERE id=?').get(sourceProjectId) as any
-      if(!p) throw new Error(`Progetto non trovato: ${sourceProjectId}`)
-      this.db.prepare(`INSERT INTO projects (id,title,subtitle,author,year,description,notes,plot,fabula)
-        VALUES (@id,@title,@subtitle,@author,@year,@description,@notes,@plot,@fabula)`).run({id:newProjectId,title:`${p.title} (copia)`,subtitle:p.subtitle,author:p.author,year:p.year,description:p.description,notes:p.notes,plot:p.plot,fabula:p.fabula})
+      if(!p) throw new Error(`Project not found: ${sourceProjectId}`)
+      this.db.prepare(`INSERT INTO projects (id,title,subtitle,author,year,description,notes,plot,fabula,book_language)
+        VALUES (@id,@title,@subtitle,@author,@year,@description,@notes,@plot,@fabula,@book_language)`).run({id:newProjectId,title:`${p.title} ${tm('common.copySuffix')}`,subtitle:p.subtitle,author:p.author,year:p.year,description:p.description,notes:p.notes,plot:p.plot,fabula:p.fabula,book_language:p.book_language??'it'})
       const ps=this.db.prepare('SELECT settings FROM project_settings WHERE project_id=?').get(sourceProjectId) as any
       this.db.prepare('INSERT INTO project_settings (project_id,settings) VALUES (?,?)').run(newProjectId,ps?.settings??'{}')
 

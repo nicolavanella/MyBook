@@ -23,6 +23,15 @@ import StatusSelect from '@renderer/components/StatusSelect'
 import { useConfirm } from '@renderer/components/ConfirmDialog'
 import { useEditorPreferences, FONT_SIZE_CLASS } from '@renderer/hooks/useEditorPreferences'
 import { FontSize, LinkMark, ImageNode, LineHeight, CommentMark, EntityTagMark } from './extensions/editorExtensions'
+import { SearchHighlight } from './extensions/searchExtension'
+import { ConfigurableShortcuts, configureShortcuts } from './extensions/shortcutsExtension'
+import FindReplaceDialog, { type FindRequest } from './FindReplaceDialog'
+import LinkModal from './LinkModal'
+import { runEditorAction, type EditorActionHandlers } from './editorActions'
+import { useTranslation } from '@renderer/i18n/useTranslation'
+import { IS_MAC } from '@renderer/lib/platform'
+import { buildShortcutLookup, eventToShortcut, VIEW_ONLY_ACTIONS } from '@shared/shortcuts'
+import type { TranslationKey } from '@shared/i18n'
 
 interface SceneComment {
   id: string
@@ -37,11 +46,18 @@ interface SceneComment {
 // fonte di verità condivisa con il main process.
 const FALLBACK_AUTOSAVE_DEBOUNCE_MS = 800
 const FALLBACK_REVISION_AFTER_IDLE_MS = 30000
-const TAG_TYPE_LABEL: Record<EntityTagType, string> = {
-  character: 'Personaggio',
-  location: 'Località',
-  object: 'Oggetto',
-  event: 'Evento'
+const TAG_TYPE_LABEL: Record<EntityTagType, TranslationKey> = {
+  character: 'entityType.character',
+  location: 'entityType.location',
+  object: 'entityType.object',
+  event: 'entityType.event'
+}
+
+/** Motivo di una revisione → chiave i18n; un motivo sconosciuto si mostra com'è. */
+const REVISION_REASON_KEY: Record<string, TranslationKey> = {
+  pause: 'editor.revisionReason.pause',
+  manual: 'editor.revisionReason.manual',
+  restore: 'editor.revisionReason.restore'
 }
 
 // Elenco stati e colori dei pallini: vedi lib/nodeStatus.ts (condiviso con l'albero del Manoscritto).
@@ -79,8 +95,8 @@ function extractEditorText(content: unknown): string {
   return parts.join(' ')
 }
 
-function formatTimestamp(date: Date): string {
-  return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+function formatTimestamp(date: Date, locale: string): string {
+  return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 /** "+12" in verde se sono state aggiunte parole rispetto alla revisione precedente, "-5" in rosso se rimosse. */
@@ -107,6 +123,7 @@ export default function SceneEditor(): JSX.Element {
   const activeNode = tree.find((n) => n.id === activeNodeId)
   const parentChapter = activeNode?.parent_id ? tree.find((n) => n.id === activeNode.parent_id) : null
   const confirm = useConfirm()
+  const { t, locale } = useTranslation()
   const editorPrefs = useEditorPreferences()
 
   // Stato di autosave indicizzato per scena. Un singolo pending globale può
@@ -161,6 +178,11 @@ export default function SceneEditor(): JSX.Element {
   const [tagPickerType, setTagPickerType] = useState<EntityTagType | null>(null)
   const [tagPickerItems, setTagPickerItems] = useState<{ id: string; name: string }[]>([])
   const [entityNameCache, setEntityNameCache] = useState<Record<string, string>>({})
+  // v0.4.0 — zoom dell'editor (prima nella toolbar: ora qui, così anche la scorciatoia da tastiera lo modifica),
+  // finestra Cerca e sostituisci (null = chiusa) e finestra Link (con la selezione catturata all'apertura).
+  const [zoom, setZoom] = useState(100)
+  const [findRequest, setFindRequest] = useState<FindRequest | null>(null)
+  const [linkModal, setLinkModal] = useState<{ from: number; to: number; url: string } | null>(null)
 
   const timingRef = useRef({
     autosaveDebounceMs: FALLBACK_AUTOSAVE_DEBOUNCE_MS,
@@ -266,7 +288,10 @@ export default function SceneEditor(): JSX.Element {
       ImageNode,
       LineHeight,
       CommentMark,
-      EntityTagMark
+      EntityTagMark,
+      // v0.4.0: evidenziazione della ricerca e scorciatoie configurabili (priorità alta: vede i tasti prima di StarterKit).
+      SearchHighlight,
+      ConfigurableShortcuts
     ],
     content: activeNode?.content ? safeParse(activeNode.content) : '',
     editable: activeNode?.status !== 'completo',
@@ -422,7 +447,7 @@ export default function SceneEditor(): JSX.Element {
       const info = lastRightClickRef.current
       if (info?.kind !== 'tag' || !editor || !activeNodeIdRef.current) return
       // v0.3.9: chiede conferma prima di eliminare, come le altre eliminazioni dell'app (coerente con "Elimina commento").
-      void confirm({ message: 'Eliminare questo tag?', confirmLabel: 'Elimina', danger: true }).then((ok) => {
+      void confirm({ message: t('editor.confirmDeleteTag'), confirmLabel: t('common.delete'), danger: true }).then((ok) => {
         if (!ok) return
         const tagMarkType = editor.schema.marks.entityTag
         editor.chain().command(({ tr }) => {
@@ -452,9 +477,9 @@ export default function SceneEditor(): JSX.Element {
     els.forEach((el) => {
       const key = `${el.getAttribute('data-entity-type')}:${el.getAttribute('data-entity-id')}`
       const name = entityNameCache[key]
-      if (name) el.setAttribute('title', `${name} (Ctrl/Cmd+click per aprire)`)
+      if (name) el.setAttribute('title', t('editor.tagTooltip', { name }))
     })
-  }, [editor, entityNameCache, activeNode?.content])
+  }, [editor, entityNameCache, activeNode?.content, t])
 
   // Precarica i nomi di tutte le entità del progetto, per i tooltip dei tag
   // già presenti nel testo quando si apre una scena (vedi effect sopra).
@@ -507,8 +532,8 @@ export default function SceneEditor(): JSX.Element {
   const handleRestoreRevision = async (revisionId: string) => {
     if (!activeNodeId) return
     const ok = await confirm({
-      message: 'Ripristinare questa revisione? Il testo attuale verrà sostituito (resterà comunque nella cronologia).',
-      confirmLabel: 'Ripristina'
+      message: t('editor.confirmRestore'),
+      confirmLabel: t('editor.restore')
     })
     if (!ok) return
     const newRevision = await window.mybook.revisions.restore(revisionId)
@@ -614,8 +639,84 @@ export default function SceneEditor(): JSX.Element {
     if (!path || !editor) return
     const src = await window.mybook.media.readAsDataUrl(path)
     if (!src) return
-    editor.chain().focus().insertContent({ type: 'image', attrs: { src, alt: path.split(/[\\/]/).pop() || 'Immagine' } }).run()
+    editor.chain().focus().insertContent({ type: 'image', attrs: { src, alt: path.split(/[\\/]/).pop() || t('editor.imageAlt') } }).run()
   }
+
+  // ───────── v0.4.0: scorciatoie, ricerca, link, zoom ─────────
+
+  /**
+   * Gestori delle azioni che richiedono interfaccia, usati sia dalla toolbar sia
+   * dalle scorciatoie (vedi editorActions.ts). Ricreati a ogni render ma letti
+   * tramite ref dal gestore di tastiera, che vive dentro l'editor e altrimenti
+   * terrebbe copie vecchie dello stato.
+   */
+  const editorHandlers: EditorActionHandlers = {
+    openFind: (mode) => {
+      if (!editor) return
+      const { from, to, empty } = editor.state.selection
+      const sameBlock = editor.state.doc.resolve(from).sameParent(editor.state.doc.resolve(to))
+      const selected = empty || !sameBlock ? '' : editor.state.doc.textBetween(from, to)
+      // Come negli altri editor: il testo selezionato (su una riga, di lunghezza ragionevole) precompila "Trova".
+      const prefill = selected.length > 0 && selected.length <= 100 ? selected : ''
+      setFindRequest((prev) => ({ mode, nonce: (prev?.nonce ?? 0) + 1, prefill }))
+    },
+    openLink: () => {
+      if (!editor) return
+      const { from, to } = editor.state.selection
+      setLinkModal({ from, to, url: (editor.getAttributes('link').href as string | undefined) ?? '' })
+    },
+    insertImage: () => void insertImage(),
+    zoomIn: () => setZoom((z) => Math.min(180, z + 10)),
+    zoomOut: () => setZoom((z) => Math.max(60, z - 10)),
+    zoomReset: () => setZoom(100)
+  }
+  const editorHandlersRef = useRef(editorHandlers)
+  editorHandlersRef.current = editorHandlers
+
+  /** Applica (o rimuove, con url "") il link sulla selezione catturata all'apertura della finestra. */
+  const applyLink = (url: string) => {
+    if (!editor || !linkModal) return
+    const { from, to, url: previous } = linkModal
+    const chain = editor.chain().focus().setTextSelection({ from, to })
+    if (!url) chain.extendMarkRange('link').unsetMark('link').run()
+    else if (from === to && !previous) {
+      // Nessuna selezione e nessun link sotto il cursore: inserisce l'indirizzo stesso come testo cliccabile.
+      chain.insertContent({ type: 'text', text: url, marks: [{ type: 'link', attrs: { href: url } }] }).run()
+    } else chain.extendMarkRange('link').setMark('link', { href: url }).run()
+    setLinkModal(null)
+  }
+
+  // Collega le scorciatoie (default + personalizzate) all'editor. Si aggiorna a caldo, senza ricreare l'editor.
+  useEffect(() => {
+    if (!editor) return
+    configureShortcuts(editor, editorPrefs.shortcuts, IS_MAC, (id) => runEditorAction(editor, id, editorHandlersRef.current))
+  }, [editor, editorPrefs.shortcuts])
+
+  // Zoom: stile applicato al contenuto dell'editor.
+  useEffect(() => {
+    if (!editor) return
+    editor.view.dom.style.setProperty('zoom', `${zoom}%`)
+    return () => {
+      editor.view.dom.style.removeProperty('zoom')
+    }
+  }, [editor, zoom])
+
+  // Cerca/Sostituisci e zoom funzionano anche quando il focus NON è nell'editor (es. nel titolo della scena).
+  // Se l'editor ha già gestito il tasto, l'evento è già "defaultPrevented" e qui si ignora.
+  useEffect(() => {
+    if (!editor) return
+    const lookup = buildShortcutLookup(editorPrefs.shortcuts)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return
+      const combo = eventToShortcut(e, IS_MAC)
+      const action = combo ? lookup.actions.get(combo) : undefined
+      if (!action || !VIEW_ONLY_ACTIONS.has(action)) return
+      e.preventDefault()
+      runEditorAction(editor, action, editorHandlersRef.current)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [editor, editorPrefs.shortcuts])
 
   const updateStatus = async (status: NodeStatus) => {
     if (!activeNodeId) return
@@ -654,7 +755,7 @@ export default function SceneEditor(): JSX.Element {
       tagOccurrences.map((occ) => ({
         entityType: occ.attrs.entityType,
         entityId: occ.attrs.entityId,
-        name: entityNameCache[`${occ.attrs.entityType}:${occ.attrs.entityId}`] ?? '(nome non disponibile)',
+        name: entityNameCache[`${occ.attrs.entityType}:${occ.attrs.entityId}`] ?? t('editor.tagNameUnavailable'),
         taggedText: doc.textBetween(occ.from, occ.to, ' '),
         from: occ.from,
         to: occ.to
@@ -731,8 +832,8 @@ export default function SceneEditor(): JSX.Element {
   const deleteComment = async (comment: SceneComment) => {
     if (!editor || !activeNodeId) return
     const ok = await confirm({
-      message: 'Eliminare questo commento? Il testo commentato resta, ma perde la sottolineatura.',
-      confirmLabel: 'Elimina',
+      message: t('editor.confirmDeleteComment'),
+      confirmLabel: t('common.delete'),
       danger: true
     })
     if (!ok) return
@@ -797,7 +898,7 @@ export default function SceneEditor(): JSX.Element {
   }
 
   if (!activeNodeId || !editor || !activeNode) {
-    return <div className="p-6 text-sm text-gray-400">Seleziona una scena dall'albero a sinistra.</div>
+    return <div className="p-6 text-sm text-gray-400">{t('editor.selectScene')}</div>
   }
 
   const isReadOnly = activeNode.status === 'completo'
@@ -840,19 +941,18 @@ export default function SceneEditor(): JSX.Element {
             disabled={saveState === 'saved' || isReadOnly}
             className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:bg-gray-300"
           >
-            {saveState === 'saving' ? 'Salvataggio…' : saveState === 'pending' ? 'Salva' : 'Salvato ✓'}
+            {saveState === 'saving' ? t('editor.saving') : saveState === 'pending' ? t('common.save') : t('editor.saved')}
           </button>
           <div className="shrink-0 text-right text-xs text-gray-400">
-            <div>{liveCounts.words} parole · {liveCounts.chars} caratteri</div>
-            {lastSavedAt && <div>Salvato alle {formatTimestamp(lastSavedAt)}</div>}
+            <div>{t('editor.words', { count: liveCounts.words })} · {t('editor.chars', { count: liveCounts.chars })}</div>
+            {lastSavedAt && <div>{t('editor.savedAt', { time: formatTimestamp(lastSavedAt, locale) })}</div>}
           </div>
         </div>
 
         {isReadOnly && (
           <div className="mb-2 flex items-center gap-1.5 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
             <Lock size={12} />
-            Testo non editabile: la scena è contrassegnata come "Finito". Riporta lo stato su
-            "Revisione" per modificarla.
+            {t('editor.readOnlyNotice', { done: t('status.completo'), review: t('status.revisione') })}
           </div>
         )}
 
@@ -863,7 +963,7 @@ export default function SceneEditor(): JSX.Element {
             className={`flex items-center gap-1 hover:text-gray-800 ${showDetails ? 'font-semibold text-gray-800 dark:text-gray-200' : ''}`}
           >
             {showDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            Dettagli scena
+            {t('editor.sceneDetails')}
           </button>
           {editorPrefs.commentsEnabled && (
             <button
@@ -874,7 +974,7 @@ export default function SceneEditor(): JSX.Element {
               className={`flex items-center gap-1 hover:text-gray-800 ${showComments ? 'font-semibold text-gray-800 dark:text-gray-200' : ''}`}
             >
               <MessageSquare size={12} />
-              {commentEntries.length} {commentEntries.length === 1 ? 'commento' : 'commenti'}
+              {t('editor.commentCount', { count: commentEntries.length })}
             </button>
           )}
           {editorPrefs.tagsEnabled && (
@@ -886,7 +986,7 @@ export default function SceneEditor(): JSX.Element {
               className={`flex items-center gap-1 hover:text-gray-800 ${showTags ? 'font-semibold text-gray-800 dark:text-gray-200' : ''}`}
             >
               <TagIcon size={12} />
-              {tagEntries.length} tag
+              {t('editor.tagCount', { count: tagEntries.length })}
             </button>
           )}
           {editorPrefs.revisionsEnabled && (
@@ -898,7 +998,7 @@ export default function SceneEditor(): JSX.Element {
               className={`flex items-center gap-1 hover:text-gray-800 ${showRevisions ? 'font-semibold text-gray-800 dark:text-gray-200' : ''}`}
             >
               <History size={12} />
-              {revisions.length} {revisions.length === 1 ? 'revisione' : 'revisioni'}
+              {t('editor.revisionCount', { count: revisions.length })}
             </button>
           )}
         </div>
@@ -908,7 +1008,7 @@ export default function SceneEditor(): JSX.Element {
             {parentChapter && (
               <div className="rounded border border-gray-200 bg-white p-2">
                 <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Capitolo: {parentChapter.title}
+                  {t('editor.chapterLabel', { title: parentChapter.title })}
                 </div>
                 {parentChapter.subtitle && (
                   <div className="text-xs text-gray-500">{parentChapter.subtitle}</div>
@@ -924,14 +1024,14 @@ export default function SceneEditor(): JSX.Element {
             <input
               key={`subtitle-${activeNode.id}`}
               className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-              placeholder="Sottotitolo scena (opzionale)"
+              placeholder={t('editor.sceneSubtitlePlaceholder')}
               defaultValue={activeNode.subtitle}
               onBlur={(e) => updateField('subtitle', e.target.value)}
             />
             <AutosizeTextarea
               key={`description-${activeNode.id}`}
               className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-              placeholder="Descrizione scena"
+              placeholder={t('editor.sceneDescriptionPlaceholder')}
               rows={2}
               defaultValue={activeNode.description}
               onBlur={(e) => updateField('description', e.target.value)}
@@ -939,7 +1039,7 @@ export default function SceneEditor(): JSX.Element {
             <AutosizeTextarea
               key={`notes-${activeNode.id}`}
               className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-              placeholder="Note scena"
+              placeholder={t('editor.sceneNotesPlaceholder')}
               rows={2}
               defaultValue={activeNode.notes}
               onBlur={(e) => updateField('notes', e.target.value)}
@@ -950,7 +1050,7 @@ export default function SceneEditor(): JSX.Element {
         {showComments && (
           <div className="mb-3 max-h-48 overflow-auto rounded border border-gray-100">
             {commentEntries.length === 0 ? (
-              <p className="p-3 text-xs text-gray-400">Nessun commento su questa scena.</p>
+              <p className="p-3 text-xs text-gray-400">{t('editor.noComments')}</p>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {commentEntries.map(({ comment, from, to }) => (
@@ -958,23 +1058,23 @@ export default function SceneEditor(): JSX.Element {
                     <button
                       onClick={() => jumpToRange(from, to)}
                       className="min-w-0 flex-1 text-left hover:underline"
-                      title="Vai al punto del testo commentato"
+                      title={t('editor.goToComment')}
                     >
                       <div className="text-gray-700">{comment.text}</div>
-                      <div className="mt-0.5 text-gray-400">{new Date(comment.created_at).toLocaleString('it-IT')}</div>
+                      <div className="mt-0.5 text-gray-400">{new Date(comment.created_at).toLocaleString(locale)}</div>
                     </button>
                     <div className="flex shrink-0 gap-1">
                       <button
                         onClick={() => setEditingComment(comment)}
                         className="text-gray-300 hover:text-blue-600"
-                        title="Modifica commento"
+                        title={t('editor.editComment')}
                       >
                         <Pencil size={13} />
                       </button>
                       <button
                         onClick={() => void deleteComment(comment)}
                         className="text-gray-300 hover:text-red-600"
-                        title="Elimina commento"
+                        title={t('editor.deleteComment')}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -989,28 +1089,28 @@ export default function SceneEditor(): JSX.Element {
         {showTags && (
           <div className="mb-3 max-h-48 overflow-auto rounded border border-gray-100">
             {tagEntries.length === 0 ? (
-              <p className="p-3 text-xs text-gray-400">Nessun tag su questa scena.</p>
+              <p className="p-3 text-xs text-gray-400">{t('editor.noTags')}</p>
             ) : (
               <>
                 <div className="grid grid-cols-[8fr_2fr_auto] gap-2 border-b border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                  <span>Testo taggato</span>
-                  <span>Tag</span>
-                  <span>Tipo</span>
+                  <span>{t('editor.tagColumnText')}</span>
+                  <span>{t('editor.tagColumnTag')}</span>
+                  <span>{t('editor.tagColumnType')}</span>
                 </div>
                 <ul className="divide-y divide-gray-100">
-                  {tagEntries.map((t, i) => (
-                    <li key={`${t.entityType}-${t.entityId}-${i}`}>
+                  {tagEntries.map((tag, i) => (
+                    <li key={`${tag.entityType}-${tag.entityId}-${i}`}>
                       <button
-                        onClick={() => jumpToRange(t.from, t.to)}
+                        onClick={() => jumpToRange(tag.from, tag.to)}
                         className="grid w-full grid-cols-[8fr_2fr_auto] items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-gray-50"
-                        title="Vai al punto del testo taggato"
+                        title={t('editor.goToTag')}
                       >
-                        <span className="min-w-0 truncate text-gray-700">{t.taggedText || '—'}</span>
+                        <span className="min-w-0 truncate text-gray-700">{tag.taggedText || '—'}</span>
                         <span className="flex min-w-0 items-center gap-1.5 truncate text-gray-700">
-                          <span className={`h-2 w-2 shrink-0 rounded-full mybook-entity-dot--${t.entityType}`} />
-                          <span className="min-w-0 truncate">{t.name}</span>
+                          <span className={`h-2 w-2 shrink-0 rounded-full mybook-entity-dot--${tag.entityType}`} />
+                          <span className="min-w-0 truncate">{tag.name}</span>
                         </span>
-                        <span className="shrink-0 text-gray-400">{TAG_TYPE_LABEL[t.entityType]}</span>
+                        <span className="shrink-0 text-gray-400">{t(TAG_TYPE_LABEL[tag.entityType])}</span>
                       </button>
                     </li>
                   ))}
@@ -1023,7 +1123,7 @@ export default function SceneEditor(): JSX.Element {
         {showRevisions && (
           <div className="mb-3 max-h-48 overflow-auto rounded border border-gray-100">
             {revisions.length === 0 ? (
-              <p className="p-3 text-xs text-gray-400">Nessuna revisione ancora salvata.</p>
+              <p className="p-3 text-xs text-gray-400">{t('editor.noRevisions')}</p>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {revisions.map((r, i) => {
@@ -1035,14 +1135,14 @@ export default function SceneEditor(): JSX.Element {
                   return (
                     <li key={r.id} className="flex items-center justify-between px-3 py-1.5 text-xs">
                       <span className="flex items-center gap-1.5">
-                        {new Date(r.created_at).toLocaleString('it-IT')} — {r.reason} · {r.word_count} parole
+                        {new Date(r.created_at).toLocaleString(locale)} — {REVISION_REASON_KEY[r.reason] ? t(REVISION_REASON_KEY[r.reason]) : r.reason} · {t('editor.words', { count: r.word_count })}
                         <WordDiffBadge diff={diff} />
                       </span>
                       <button
                         onClick={() => handleRestoreRevision(r.id)}
                         className="shrink-0 text-blue-600 hover:underline"
                       >
-                        Ripristina
+                        {t('editor.restore')}
                       </button>
                     </li>
                   )
@@ -1052,7 +1152,20 @@ export default function SceneEditor(): JSX.Element {
           </div>
         )}
 
-        <EditorToolbar editor={editor} disabled={isReadOnly} visibleTools={editorPrefs.toolbarTools} onInsertImage={insertImage} />
+        <EditorToolbar
+          editor={editor}
+          disabled={isReadOnly}
+          visibleTools={editorPrefs.toolbarTools}
+          shortcuts={editorPrefs.shortcuts}
+          zoom={zoom}
+          handlers={editorHandlers}
+          findOpen={findRequest !== null}
+        />
+
+        {/* v0.4.0: Cerca e sostituisci — finestra flottante non bloccante, ancorata sotto la toolbar (l'header è sticky, quindi `top-full` la tiene agganciata). */}
+        {findRequest && (
+          <FindReplaceDialog editor={editor} request={findRequest} shortcuts={editorPrefs.shortcuts} onClose={() => setFindRequest(null)} />
+        )}
       </div>
 
       <div className="flex-1 overflow-auto px-6 py-4">
@@ -1078,6 +1191,10 @@ export default function SceneEditor(): JSX.Element {
           onSelect={applyEntityTag}
           onClose={() => setTagPickerType(null)}
         />
+      )}
+
+      {linkModal && (
+        <LinkModal initialUrl={linkModal.url} onApply={applyLink} onClose={() => setLinkModal(null)} />
       )}
 
       {commentModalRange && (

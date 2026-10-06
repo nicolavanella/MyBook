@@ -1,4 +1,5 @@
 import AutosizeTextarea from '@renderer/components/AutosizeTextarea'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 export interface CustomField {
   label: string
   value: string
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function CustomFieldsEditor({ fields, onChange }: Props): JSX.Element {
+  const { t } = useTranslation()
   const updateField = (index: number, patch: Partial<CustomField>) => {
     const next = fields.map((f, i) => (i === index ? { ...f, ...patch } : f))
     onChange(next)
@@ -29,13 +31,13 @@ export default function CustomFieldsEditor({ fields, onChange }: Props): JSX.Ele
         <div key={i} className="flex gap-2">
           <input
             className="w-1/3 rounded border border-gray-300 px-2 py-1 text-sm"
-            placeholder="Etichetta"
+            placeholder={t('customFields.label')}
             value={field.label}
             onChange={(e) => updateField(i, { label: e.target.value })}
           />
           <AutosizeTextarea
             className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
-            placeholder="Valore"
+            placeholder={t('customFields.value')}
             rows={field.value.includes('\n') ? 3 : 1}
             value={field.value}
             onChange={(e) => updateField(i, { value: e.target.value })}
@@ -43,14 +45,14 @@ export default function CustomFieldsEditor({ fields, onChange }: Props): JSX.Ele
           <button
             onClick={() => removeField(i)}
             className="px-2 text-sm text-gray-400 hover:text-red-600"
-            title="Rimuovi campo"
+            title={t('customFields.remove')}
           >
             ✕
           </button>
         </div>
       ))}
       <button onClick={addField} className="text-sm text-blue-600 hover:underline">
-        + aggiungi campo
+        {t('customFields.add')}
       </button>
     </div>
   )

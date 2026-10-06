@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout'
+import { useTranslation } from './i18n/useTranslation'
 
 // Ogni pagina è nel proprio chunk: la prima finestra dell'app carica solo
 // bootstrap + editor (rotta di default), non tutte le pagine assieme
@@ -18,7 +19,8 @@ const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
 const InfoPage = lazy(() => import('./features/info/InfoPage'))
 
 function PageFallback(): JSX.Element {
-  return <div className="p-6 text-sm text-gray-400">Caricamento…</div>
+  const { t } = useTranslation()
+  return <div className="p-6 text-sm text-gray-400">{t('common.loading')}</div>
 }
 
 export default function App(): JSX.Element {

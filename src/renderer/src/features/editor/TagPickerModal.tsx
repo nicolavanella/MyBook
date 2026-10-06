@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import type { EntityTagType } from '@renderer/stores/useEntityNavigationStore'
+import type { TranslationKey } from '@shared/i18n'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
-const LABELS: Record<EntityTagType, string> = {
-  character: 'Personaggio',
-  location: 'Località',
-  object: 'Oggetto',
-  event: 'Evento'
+const LABELS: Record<EntityTagType, TranslationKey> = {
+  character: 'entityType.character',
+  location: 'entityType.location',
+  object: 'entityType.object',
+  event: 'entityType.event'
 }
 
 interface PickerItem {
@@ -31,6 +33,7 @@ export default function TagPickerModal({
   onSelect: (item: PickerItem) => void
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -50,14 +53,14 @@ export default function TagPickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-b border-gray-100 p-3 dark:border-gray-700">
-          <div className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-100">Tag: {LABELS[entityType]}</div>
+          <div className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-100">{t('tagPicker.title', { type: t(LABELS[entityType]) })}</div>
           <div className="flex items-center gap-1.5 rounded border border-gray-300 px-2 py-1 dark:border-gray-600">
             <Search size={13} className="shrink-0 text-gray-400" />
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cerca…"
+              placeholder={t('entities.search')}
               spellCheck={false}
               data-search-input
               className="w-full min-w-0 bg-transparent text-sm outline-none dark:text-gray-100"
@@ -66,7 +69,7 @@ export default function TagPickerModal({
         </div>
         <ul className="max-h-72 overflow-auto p-1">
           {filtered.length === 0 && (
-            <li className="px-3 py-2 text-sm text-gray-400">Nessun elemento trovato.</li>
+            <li className="px-3 py-2 text-sm text-gray-400">{t('tagPicker.empty')}</li>
           )}
           {filtered.map((item) => (
             <li key={item.id}>

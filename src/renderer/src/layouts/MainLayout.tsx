@@ -22,7 +22,8 @@ import ProjectFormModal, { type ProjectFormValues } from '@renderer/features/pro
 import { useTheme } from '@renderer/hooks/useTheme'
 import { useUiScale } from '@renderer/hooks/useUiScale'
 import { useTranslation } from '@renderer/i18n/useTranslation'
-import type { TranslationKey } from '@renderer/i18n/translations'
+import type { TranslationKey } from '@shared/i18n'
+import { normalizeLanguage } from '@shared/i18n'
 import { shouldShowContextMenu } from '@renderer/lib/contextMenuGate'
 import { buildWindowTitle } from '@renderer/lib/windowTitle'
 import TodoPromptModal from '@renderer/components/TodoPromptModal'
@@ -241,7 +242,8 @@ export default function MainLayout(): JSX.Element {
       description: values.description,
       notes: values.notes,
       plot: values.plot,
-      fabula: values.fabula
+      fabula: values.fabula,
+      book_language: values.bookLanguage
     })
     setProject(updated)
     setShowEditModal(false)
@@ -259,7 +261,7 @@ export default function MainLayout(): JSX.Element {
           <button
             onClick={() => setCollapsed((c) => !c)}
             className="rounded p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700"
-            title={collapsed ? 'Espandi' : 'Comprimi'}
+            title={collapsed ? t('layout.expand') : t('layout.collapse')}
           >
             {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
           </button>
@@ -287,7 +289,7 @@ export default function MainLayout(): JSX.Element {
             <button
               onClick={() => setShowEditModal(true)}
               className="ml-1 shrink-0 text-gray-300 opacity-0 hover:text-gray-600 group-hover:opacity-100"
-              title="Modifica progetto"
+              title={t('project.edit')}
             >
               <Pencil size={13} />
             </button>
@@ -311,7 +313,7 @@ export default function MainLayout(): JSX.Element {
                     }}
                     className="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
                   >
-                    Modifica
+                    {t('common.edit')}
                   </button>
                 </div>
               </div>
@@ -355,11 +357,11 @@ export default function MainLayout(): JSX.Element {
           <div className="border-t border-gray-200 p-2">
             <button
               onClick={handleExit}
-              title={collapsed ? 'Esci' : undefined}
+              title={collapsed ? t('layout.exit') : undefined}
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
             >
               <LogOut size={16} className="shrink-0" />
-              {!collapsed && <span>Esci</span>}
+              {!collapsed && <span>{t('layout.exit')}</span>}
             </button>
           </div>
         )}
@@ -371,8 +373,8 @@ export default function MainLayout(): JSX.Element {
 
       {showEditModal && project && (
         <ProjectFormModal
-          title="Modifica progetto"
-          submitLabel="Salva"
+          title={t('project.edit')}
+          submitLabel={t('common.save')}
           initialValues={{
             title: project.title ?? '',
             subtitle: project.subtitle ?? '',
@@ -381,7 +383,8 @@ export default function MainLayout(): JSX.Element {
             description: project.description ?? '',
             notes: project.notes ?? '',
             plot: project.plot ?? '',
-            fabula: project.fabula ?? ''
+            fabula: project.fabula ?? '',
+            bookLanguage: normalizeLanguage(project.book_language)
           }}
           onClose={() => setShowEditModal(false)}
           onSubmit={handleEditSubmit}

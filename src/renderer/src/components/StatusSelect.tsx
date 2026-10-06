@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import type { NodeStatus } from '@shared/schemas/document.schema'
 import { NODE_STATUS_OPTIONS } from '@renderer/lib/nodeStatus'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 /**
  * Selettore dello Stato di una scena (Idea / Bozza / Revisione / Finito) con
@@ -21,6 +22,7 @@ export default function StatusSelect({
   value: NodeStatus
   onChange: (status: NodeStatus) => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   // Voce evidenziata durante la navigazione da tastiera (indice in NODE_STATUS_OPTIONS).
   const [highlighted, setHighlighted] = useState(0)
@@ -73,18 +75,18 @@ export default function StatusSelect({
         onClick={() => (open ? setOpen(false) : openMenu())}
         aria-haspopup="listbox"
         aria-expanded={open}
-        title="Stato della scena"
+        title={t('status.sceneStatus')}
         className="flex items-center gap-2 rounded border border-gray-300 px-2 py-1 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
       >
         <span className={`h-2 w-2 shrink-0 rounded-full ${current.dotClass}`} />
-        <span>{current.label}</span>
+        <span>{t(current.labelKey)}</span>
         <ChevronDown size={13} className="text-gray-400" />
       </button>
 
       {open && (
         <ul
           role="listbox"
-          aria-label="Stato della scena"
+          aria-label={t('status.sceneStatus')}
           className="absolute right-0 z-30 mt-1 min-w-full rounded border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-800"
         >
           {NODE_STATUS_OPTIONS.map((option, index) => (
@@ -99,7 +101,7 @@ export default function StatusSelect({
               } ${option.value === value ? 'font-medium' : ''}`}
             >
               <span className={`h-2 w-2 shrink-0 rounded-full ${option.dotClass}`} />
-              {option.label}
+              {t(option.labelKey)}
             </li>
           ))}
         </ul>

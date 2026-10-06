@@ -5,6 +5,7 @@ import { IpcChannels } from '@shared/ipc/channels'
 import { UpdateAppSettingsInput } from '@shared/schemas/settings.schema'
 import type { SettingsService } from '../services/settings.service'
 import { markRelaunching } from '../index'
+import { tm } from '../i18n'
 
 /**
  * Pianifica il riavvio dell'app dopo un'operazione distruttiva (reset,
@@ -61,7 +62,7 @@ export function registerSettingsIpc(service: SettingsService): void {
   ipcMain.handle(IpcChannels.settings.pickDictionaryFile, async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
-      filters: [{ name: 'Dizionari', extensions: ['dic', 'txt', 'aff', 'dic'] }, { name: 'Tutti i file', extensions: ['*'] }]
+      filters: [{ name: tm('dialog.dictionaries'), extensions: ['dic', 'txt', 'aff', 'dic'] }, { name: tm('dialog.allFiles'), extensions: ['*'] }]
     })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
@@ -70,7 +71,7 @@ export function registerSettingsIpc(service: SettingsService): void {
   ipcMain.handle(IpcChannels.settings.pickDatabaseBackup, async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
-      filters: [{ name: 'Database MyBook', extensions: ['db', 'sqlite', 'sqlite3'] }, { name: 'Tutti i file', extensions: ['*'] }]
+      filters: [{ name: tm('dialog.mybookDatabase'), extensions: ['db', 'sqlite', 'sqlite3'] }, { name: tm('dialog.allFiles'), extensions: ['*'] }]
     })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
@@ -103,7 +104,7 @@ export function registerSettingsIpc(service: SettingsService): void {
   })
 
   ipcMain.handle(IpcChannels.settings.loadDatabaseBackup, (_e, raw: unknown) => {
-    if (typeof raw !== 'string' || !raw.trim()) throw new Error('Percorso backup non valido.')
+    if (typeof raw !== 'string' || !raw.trim()) throw new Error(tm('backup.invalidPath'))
     const dbPath = getDbPath()
     closeDb()
     replaceDatabaseFile(dbPath, raw)

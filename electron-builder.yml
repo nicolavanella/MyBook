@@ -26,6 +26,9 @@ extraResources:
     to: LICENSE
   - from: resources/Manuale.mybook.json
     to: Manuale.mybook.json
+  # v0.4.0: versione inglese del manuale, importata se la prima installazione è in inglese.
+  - from: resources/Manual.en.mybook.json
+    to: Manual.en.mybook.json
 
 asarUnpack:
   - '**/*.node' # moduli nativi come better-sqlite3

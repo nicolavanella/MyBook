@@ -6,9 +6,14 @@ import {
   Quote, Redo2, Search, Strikethrough, Type, Underline, Undo2, ZoomIn, ZoomOut
 } from 'lucide-react'
 import type { ToolbarTool } from '@shared/schemas/settings.schema'
+import { formatShortcut, type ResolvedShortcuts, type ShortcutActionId } from '@shared/shortcuts'
+import { useTranslation } from '@renderer/i18n/useTranslation'
+import { IS_MAC } from '@renderer/lib/platform'
+import { runEditorAction, type EditorActionHandlers } from './editorActions'
 
+/** I nomi dei font sono nomi propri (non si traducono); solo "Predefinito" dipende dalla lingua e si risolve al render. */
 const FONT_FAMILIES = [
-  { label: 'Predefinito', value: '' }, { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
   { label: 'Times New Roman', value: '"Times New Roman", serif' }, { label: 'Arial', value: 'Arial, sans-serif' },
   { label: 'Courier New', value: '"Courier New", monospace' }
 ]
@@ -18,21 +23,17 @@ const FONT_SIZES = [
   { label: '24', value: '24px' }, { label: '32', value: '32px' }
 ]
 const COLORS = ['#111827', '#dc2626', '#2563eb', '#16a34a', '#ca8a04', '#7c3aed']
+const HIGHLIGHTS = ['#fef08a', '#fecaca', '#bfdbfe', '#bbf7d0', '#fed7aa', '#e9d5ff']
+/** Valori numerici dell'interlinea: l'etichetta ("1,15" in italiano, "1.15" in inglese) si formatta al render secondo la lingua. */
+const LINE_HEIGHTS = ['1', '1.15', '1.5', '2']
 
 /**
- * Inserisce `open`+`close` nel punto del cursore e riposiziona il cursore
- * subito dopo `open` (v0.3.9, usata dallo strumento "Dialoghi"): insertContent
- * lascia di norma il cursore alla FINE di ciò che ha appena inserito, quindi
- * va spostato indietro esplicitamente per finire "in mezzo" alle due virgolette.
+ * Strumenti che NON modificano il testo: restano utilizzabili anche quando la
+ * scena è bloccata ("Finito"). Prima l'intera toolbar veniva disattivata,
+ * ma cercare in una scena finita (o ingrandirla per rileggerla) è proprio
+ * ciò che serve.
  */
-function insertAndPlaceCursorBetween(editor: Editor, open: string, close: string): void {
-  const { from } = editor.state.selection
-  editor.chain().focus().insertContent(open + close).setTextSelection(from + open.length).run()
-}
-const HIGHLIGHTS = ['#fef08a', '#fecaca', '#bfdbfe', '#bbf7d0', '#fed7aa', '#e9d5ff']
-const LINE_HEIGHTS = [
-  { label: '1', value: '1' }, { label: '1,15', value: '1.15' }, { label: '1,5', value: '1.5' }, { label: '2', value: '2' }
-]
+const VIEW_ONLY_TOOLS: ReadonlySet<ToolbarTool> = new Set<ToolbarTool>(['zoom', 'search'])
 
 function Button({ title, active, disabled, onClick, children }: any): JSX.Element {
   return <button type="button" title={title} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={onClick}
@@ -94,148 +95,143 @@ function Group({ icon, label, children }: { icon: React.ReactNode; label: string
   )
 }
 
+export interface EditorToolbarProps {
+  editor: Editor
+  disabled?: boolean
+  visibleTools: ToolbarTool[]
+  /** v0.4.0: scorciatoie effettive, per mostrarle nei tooltip ("Grassetto (Ctrl+B)"). */
+  shortcuts: ResolvedShortcuts
+  /** v0.4.0: lo zoom vive in SceneEditor (così anche la scorciatoia da tastiera lo modifica). */
+  zoom: number
+  handlers: EditorActionHandlers
+  /** La finestra Cerca e sostituisci è aperta: il pulsante appare "premuto". */
+  findOpen: boolean
+}
+
 export default function EditorToolbar({
-  editor, disabled = false, visibleTools, onInsertImage
-}: { editor: Editor; disabled?: boolean; visibleTools: ToolbarTool[]; onInsertImage: () => Promise<void> }): JSX.Element {
-  const [zoom, setZoom] = useState(100)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [query, setQuery] = useState('')
+  editor, disabled = false, visibleTools, shortcuts, zoom, handlers, findOpen
+}: EditorToolbarProps): JSX.Element {
+  const { t, locale } = useTranslation()
 
-  useEffect(() => {
-    editor.view.dom.style.setProperty('zoom', `${zoom}%`)
-    return () => { editor.view.dom.style.removeProperty('zoom') }
-  }, [editor, zoom])
-
-  /**
-   * Cerca `query` nel documento e seleziona l'occorrenza successiva rispetto
-   * al cursore, avvolgendo dall'inizio se non ne trova più avanti — prima
-   * partiva sempre dall'inizio del documento, quindi premere Invio più volte
-   * restava bloccato sulla prima occorrenza, dando l'impressione che "Cerca"
-   * non funzionasse. Il secondo fix è `.scrollIntoView()`: `setTextSelection`
-   * da solo sposta la selezione ma non la porta in vista, quindi un risultato
-   * fuori dall'area visibile sembrava semplicemente non essere stato trovato.
-   */
-  const search = () => {
-    const q = query.trim().toLocaleLowerCase()
-    if (!q) return
-    const doc = editor.state.doc
-    const cursorPos = editor.state.selection.to
-
-    const findFrom = (startPos: number): { from: number; to: number } | null => {
-      let found: { from: number; to: number } | null = null
-      doc.descendants((node, pos) => {
-        if (found || !node.isText || !node.text) return false
-        const nodeEnd = pos + node.text.length
-        if (nodeEnd < startPos) return true // nodo già superato dal cursore: salta
-        const searchFrom = Math.max(0, startPos - pos)
-        const index = node.text.toLocaleLowerCase().indexOf(q, searchFrom)
-        if (index >= 0) {
-          found = { from: pos + index, to: pos + index + q.length }
-          return false
-        }
-        return true
-      })
-      return found
-    }
-
-    const match = findFrom(cursorPos) ?? findFrom(0) // ricerca "ad anello": ricomincia dall'inizio se non trova più avanti
-    if (match) editor.chain().focus().setTextSelection(match).scrollIntoView().run()
+  const run = (id: ShortcutActionId) => runEditorAction(editor, id, handlers)
+  /** "Grassetto" → "Grassetto (Ctrl+B)" con la scorciatoia REALE (anche se personalizzata); senza scorciatoia, solo l'etichetta. */
+  const hint = (label: string, id: ShortcutActionId): string => {
+    const combo = formatShortcut(shortcuts[id], IS_MAC)
+    return combo ? `${label} (${combo})` : label
   }
 
-  /** Un caso per ogni id di strumento: mappa dichiarativa usata da visibleTools.map(renderTool) qui sotto, così l'ordine di rendering segue le preferenze salvate. */
+  /** Un caso per ogni id di strumento: mappa dichiarativa usata da visibleTools.map, così l'ordine di rendering segue le preferenze salvate. */
   const renderTool = (tool: ToolbarTool): JSX.Element | null => {
     switch (tool) {
       case 'zoom':
-        return <Group key={tool} icon={<ZoomIn size={15}/>} label="Zoom">
-          <Button title="Riduci zoom" onClick={() => setZoom((z) => Math.max(60, z - 10))}><ZoomOut size={15}/></Button>
-          <Button title="Zoom 100%" onClick={() => setZoom(100)}>{zoom}%</Button>
-          <Button title="Aumenta zoom" onClick={() => setZoom((z) => Math.min(180, z + 10))}><ZoomIn size={15}/></Button>
+        return <Group icon={<ZoomIn size={15}/>} label={t('toolbar.tool.zoom')}>
+          <Button title={hint(t('toolbar.zoomOut'), 'zoomOut')} onClick={() => run('zoomOut')}><ZoomOut size={15}/></Button>
+          <Button title={hint(t('toolbar.zoomReset'), 'zoomReset')} onClick={() => run('zoomReset')}>{zoom}%</Button>
+          <Button title={hint(t('toolbar.zoomIn'), 'zoomIn')} onClick={() => run('zoomIn')}><ZoomIn size={15}/></Button>
         </Group>
       case 'undo':
-        return <Button key={tool} title="Annulla (Ctrl+Z)" onClick={() => editor.chain().focus().undo().run()}><Undo2 size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.undo'), 'undo')} onClick={() => run('undo')}><Undo2 size={16}/></Button>
       case 'redo':
-        return <Button key={tool} title="Ripeti (Ctrl+Y)" onClick={() => editor.chain().focus().redo().run()}><Redo2 size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.redo'), 'redo')} onClick={() => run('redo')}><Redo2 size={16}/></Button>
       case 'heading':
-        return <Group key={tool} icon={<Type size={15}/>} label="Titolo">
-          <Button title="Testo normale" active={editor.isActive('paragraph')} onClick={() => editor.chain().focus().setParagraph().run()}>Testo normale</Button>
-          {[1,2,3].map((level) => <Button key={level} title={`Titolo ${level}`} active={editor.isActive('heading', {level})} onClick={() => editor.chain().focus().toggleHeading({level}).run()}>H{level}</Button>)}
+        return <Group icon={<Type size={15}/>} label={t('toolbar.tool.heading')}>
+          <Button title={hint(t('toolbar.paragraph'), 'paragraph')} active={editor.isActive('paragraph')} onClick={() => run('paragraph')}>{t('toolbar.paragraph')}</Button>
+          {([1, 2, 3] as const).map((level) => {
+            const id = `heading${level}` as const
+            return <Button key={level} title={hint(t('toolbar.headingLevel', { level }), id)} active={editor.isActive('heading', { level })} onClick={() => run(id)}>H{level}</Button>
+          })}
         </Group>
       case 'font':
-        return <select key={tool} title="Font" className="rounded border border-gray-300 bg-white px-1.5 py-1.5 text-xs dark:border-gray-600" value={editor.getAttributes('textStyle').fontFamily ?? ''}
-          onChange={(e) => e.target.value ? editor.chain().focus().setFontFamily(e.target.value).run() : editor.chain().focus().unsetFontFamily().run()}>{FONT_FAMILIES.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}</select>
+        return <select title={t('toolbar.tool.font')} className="rounded border border-gray-300 bg-white px-1.5 py-1.5 text-xs dark:border-gray-600" value={editor.getAttributes('textStyle').fontFamily ?? ''}
+          onChange={(e) => e.target.value ? editor.chain().focus().setFontFamily(e.target.value).run() : editor.chain().focus().unsetFontFamily().run()}>
+          <option value="">{t('toolbar.fontDefault')}</option>
+          {FONT_FAMILIES.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+        </select>
       case 'size':
-        return <select key={tool} title="Dimensione carattere" className="w-16 rounded border border-gray-300 bg-white px-1.5 py-1.5 text-xs dark:border-gray-600" value={editor.getAttributes('fontSize').size ?? ''}
+        return <select title={t('toolbar.fontSize')} className="w-16 rounded border border-gray-300 bg-white px-1.5 py-1.5 text-xs dark:border-gray-600" value={editor.getAttributes('fontSize').size ?? ''}
           onChange={(e) => e.target.value ? editor.chain().focus().setMark('fontSize', {size:e.target.value}).run() : editor.chain().focus().unsetMark('fontSize').run()}>
-          <option value="">Size</option>{FONT_SIZES.map((s)=><option key={s.value} value={s.value}>{s.label}</option>)}</select>
+          <option value="">{t('toolbar.tool.size')}</option>{FONT_SIZES.map((s)=><option key={s.value} value={s.value}>{s.label}</option>)}</select>
       case 'bold':
-        return <Button key={tool} title="Grassetto (Ctrl+B)" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}><Bold size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.bold'), 'bold')} active={editor.isActive('bold')} onClick={() => run('bold')}><Bold size={16}/></Button>
       case 'italic':
-        return <Button key={tool} title="Corsivo (Ctrl+I)" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.italic'), 'italic')} active={editor.isActive('italic')} onClick={() => run('italic')}><Italic size={16}/></Button>
       case 'underline':
-        return <Button key={tool} title="Sottolineato (Ctrl+U)" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}><Underline size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.underline'), 'underline')} active={editor.isActive('underline')} onClick={() => run('underline')}><Underline size={16}/></Button>
       case 'strike':
-        return <Button key={tool} title="Barrato" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}><Strikethrough size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.strike'), 'strike')} active={editor.isActive('strike')} onClick={() => run('strike')}><Strikethrough size={16}/></Button>
       case 'color':
-        return <Group key={tool} icon={<Palette size={15}/>} label="Colore">
-          <div className="flex items-center gap-1 px-1">{COLORS.map((c)=><button key={c} type="button" title={`Testo ${c}`} onMouseDown={(e)=>e.preventDefault()} onClick={()=>editor.chain().focus().setColor(c).run()} className="h-5 w-5 rounded-full border" style={{backgroundColor:c}}/>)}
-          <Button title="Rimuovi colore" onClick={()=>editor.chain().focus().unsetColor().run()}>×</Button></div>
-          <div className="flex items-center gap-1 border-l px-1">{HIGHLIGHTS.map((c)=><button key={c} type="button" title={`Evidenziatore ${c}`} onMouseDown={(e)=>e.preventDefault()} onClick={()=>editor.chain().focus().toggleHighlight({color:c}).run()} className="h-5 w-5 rounded border" style={{backgroundColor:c}}/>)}
-          <Button title="Rimuovi evidenziatore" onClick={()=>editor.chain().focus().unsetHighlight().run()}><Highlighter size={15}/></Button></div>
+        return <Group icon={<Palette size={15}/>} label={t('toolbar.tool.color')}>
+          <div className="flex items-center gap-1 px-1">{COLORS.map((c)=><button key={c} type="button" title={t('toolbar.textColor', { color: c })} onMouseDown={(e)=>e.preventDefault()} onClick={()=>editor.chain().focus().setColor(c).run()} className="h-5 w-5 rounded-full border" style={{backgroundColor:c}}/>)}
+          <Button title={t('toolbar.removeColor')} onClick={()=>editor.chain().focus().unsetColor().run()}>×</Button></div>
+          <div className="flex items-center gap-1 border-l px-1">{HIGHLIGHTS.map((c)=><button key={c} type="button" title={t('toolbar.highlightColor', { color: c })} onMouseDown={(e)=>e.preventDefault()} onClick={()=>editor.chain().focus().toggleHighlight({color:c}).run()} className="h-5 w-5 rounded border" style={{backgroundColor:c}}/>)}
+          <Button title={t('toolbar.removeHighlight')} onClick={()=>editor.chain().focus().unsetHighlight().run()}><Highlighter size={15}/></Button></div>
         </Group>
       case 'clearFormatting':
-        return <Button key={tool} title="Cancella formattazione" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}><Eraser size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.clearFormatting'), 'clearFormatting')} onClick={() => run('clearFormatting')}><Eraser size={16}/></Button>
       case 'lists':
-        return <Group key={tool} icon={<List size={16}/>} label="Liste elenchi">
-          <Button title="Elenco puntato" active={editor.isActive('bulletList')} onClick={()=>editor.chain().focus().toggleBulletList().run()}><List size={16}/></Button>
-          <Button title="Elenco numerato" active={editor.isActive('orderedList')} onClick={()=>editor.chain().focus().toggleOrderedList().run()}><ListOrdered size={16}/></Button>
+        return <Group icon={<List size={16}/>} label={t('toolbar.tool.lists')}>
+          <Button title={hint(t('toolbar.bulletList'), 'bulletList')} active={editor.isActive('bulletList')} onClick={()=>run('bulletList')}><List size={16}/></Button>
+          <Button title={hint(t('toolbar.orderedList'), 'orderedList')} active={editor.isActive('orderedList')} onClick={()=>run('orderedList')}><ListOrdered size={16}/></Button>
         </Group>
       case 'alignment':
-        return <Group key={tool} icon={<AlignLeft size={15}/>} label="Allineamento">
-          <Button title="Sinistra" active={editor.isActive({textAlign:'left'})} onClick={()=>editor.chain().focus().setTextAlign('left').run()}><AlignLeft size={15}/></Button>
-          <Button title="Centro" active={editor.isActive({textAlign:'center'})} onClick={()=>editor.chain().focus().setTextAlign('center').run()}><AlignCenter size={15}/></Button>
-          <Button title="Destra" active={editor.isActive({textAlign:'right'})} onClick={()=>editor.chain().focus().setTextAlign('right').run()}><AlignRight size={15}/></Button>
-          <Button title="Giustificato" active={editor.isActive({textAlign:'justify'})} onClick={()=>editor.chain().focus().setTextAlign('justify').run()}><AlignJustify size={15}/></Button>
+        return <Group icon={<AlignLeft size={15}/>} label={t('toolbar.tool.alignment')}>
+          <Button title={hint(t('toolbar.alignLeft'), 'alignLeft')} active={editor.isActive({textAlign:'left'})} onClick={()=>run('alignLeft')}><AlignLeft size={15}/></Button>
+          <Button title={hint(t('toolbar.alignCenter'), 'alignCenter')} active={editor.isActive({textAlign:'center'})} onClick={()=>run('alignCenter')}><AlignCenter size={15}/></Button>
+          <Button title={hint(t('toolbar.alignRight'), 'alignRight')} active={editor.isActive({textAlign:'right'})} onClick={()=>run('alignRight')}><AlignRight size={15}/></Button>
+          <Button title={hint(t('toolbar.alignJustify'), 'alignJustify')} active={editor.isActive({textAlign:'justify'})} onClick={()=>run('alignJustify')}><AlignJustify size={15}/></Button>
         </Group>
       case 'lineHeight':
-        return <select key={tool} title="Interlinea" className="rounded border border-gray-300 bg-white px-1.5 py-1.5 text-xs dark:border-gray-600" defaultValue="" onChange={(e)=>e.target.value && editor.chain().focus().updateAttributes('paragraph', {lineHeight:e.target.value}).updateAttributes('heading', {lineHeight:e.target.value}).run()}><option value="">Interlinea</option>{LINE_HEIGHTS.map((l)=><option key={l.value} value={l.value}>{l.label}</option>)}</select>
-      case 'dialogues':
-        // v0.3.9: tre modi comuni per introdurre un dialogo in narrativa
-        // italiana. Le virgolette si inseriscono SENZA spazio interno
-        // («Ciao», non « Ciao », come da tipografia corrente) col cursore
-        // tra le due, pronto per scrivere; il trattino si inserisce seguito
-        // da uno spazio (convenzione più diffusa: "– disse Maria"), col
-        // cursore già dopo, per continuare a scrivere subito.
-        return <Group key={tool} icon={<Quote size={16}/>} label="Dialoghi">
+        return <select title={t('toolbar.tool.lineHeight')} className="rounded border border-gray-300 bg-white px-1.5 py-1.5 text-xs dark:border-gray-600" defaultValue="" onChange={(e)=>e.target.value && editor.chain().focus().updateAttributes('paragraph', {lineHeight:e.target.value}).updateAttributes('heading', {lineHeight:e.target.value}).run()}>
+          <option value="">{t('toolbar.tool.lineHeight')}</option>
+          {LINE_HEIGHTS.map((v)=><option key={v} value={v}>{Number(v).toLocaleString(locale)}</option>)}
+        </select>
+      case 'dialogues': {
+        // Tre modi comuni per introdurre un dialogo (v0.3.9). Le virgolette si inseriscono SENZA spazio interno,
+        // col cursore tra le due; il trattino è seguito da uno spazio, col cursore già dopo.
+        const row = 'rounded px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'
+        const item = (id: ShortcutActionId, glyph: string, label: string) => (
+          <button type="button" title={hint(label, id)} onMouseDown={(e)=>e.preventDefault()} onClick={()=>run(id)} className={row}>
+            {glyph} <span className="text-xs text-gray-400">{label}</span>
+          </button>
+        )
+        return <Group icon={<Quote size={16}/>} label={t('toolbar.tool.dialogues')}>
           <div className="flex flex-col gap-0.5">
-            <button type="button" onMouseDown={(e)=>e.preventDefault()} onClick={()=>insertAndPlaceCursorBetween(editor,'«','»')} className="rounded px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">« » <span className="text-xs text-gray-400">virgolette basse</span></button>
-            <button type="button" onMouseDown={(e)=>e.preventDefault()} onClick={()=>insertAndPlaceCursorBetween(editor,'\u201c','\u201d')} className="rounded px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">“ ” <span className="text-xs text-gray-400">virgolette alte</span></button>
-            <button type="button" onMouseDown={(e)=>e.preventDefault()} onClick={()=>editor.chain().focus().insertContent('\u2013 ').run()} className="rounded px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">– <span className="text-xs text-gray-400">trattino lungo</span></button>
+            {item('dialogueGuillemets', '« »', t('toolbar.dialogueGuillemets'))}
+            {item('dialogueQuotes', '\u201c \u201d', t('toolbar.dialogueQuotes'))}
+            {item('dialogueDash', '\u2013', t('toolbar.dialogueDash'))}
           </div>
         </Group>
+      }
       case 'blockquote':
-        return <Button key={tool} title="Citazione" active={editor.isActive('blockquote')} onClick={()=>editor.chain().focus().toggleBlockquote().run()}><Quote size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.blockquote'), 'blockquote')} active={editor.isActive('blockquote')} onClick={()=>run('blockquote')}><Quote size={16}/></Button>
       case 'pageSeparator':
-        return <Button key={tool} title="Separatore pagina" onClick={()=>editor.chain().focus().setHorizontalRule().run()}><FileMinus size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.pageSeparator'), 'pageSeparator')} onClick={()=>run('pageSeparator')}><FileMinus size={16}/></Button>
       case 'link':
-        return <Button key={tool} title="Link" active={editor.isActive('link')} onClick={()=>{const current=editor.getAttributes('link').href; const url=window.prompt('URL del link', current || 'https://'); if(url===null)return; if(url.trim()) editor.chain().focus().setMark('link',{href:url.trim()}).run(); else editor.chain().focus().unsetMark('link').run()}}><LinkIcon size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.link'), 'link')} active={editor.isActive('link')} onClick={()=>run('link')}><LinkIcon size={16}/></Button>
       case 'image':
-        return <Button key={tool} title="Immagine" onClick={()=>void onInsertImage()}><ImageIcon size={16}/></Button>
+        return <Button title={hint(t('toolbar.tool.image'), 'image')} onClick={()=>run('image')}><ImageIcon size={16}/></Button>
       case 'search':
-        return <div key={tool} className="flex items-center gap-1">
-          {searchOpen && <input autoFocus value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter')search(); if(e.key==='Escape')setSearchOpen(false)}} placeholder="Cerca…" spellCheck={false} data-search-input className="w-32 rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-600"/>}
-          <Button title="Cerca (Invio per trovare il successivo)" onClick={()=>{ if (!searchOpen) { setSearchOpen(true) } else { search() } }}><Search size={16}/></Button>
-        </div>
+        // v0.4.0: non più un campo inline ma la finestra "Cerca e sostituisci" (FindReplaceDialog).
+        return <Button title={hint(t('toolbar.tool.search'), 'find')} active={findOpen} onClick={()=>run('find')}><Search size={16}/></Button>
       default:
         return null
     }
   }
 
-  return <div className={`mb-2 flex flex-wrap items-center gap-0.5 rounded border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-800 ${disabled ? 'pointer-events-none opacity-40' : ''}`}>
+  const renderWrapped = (tool: ToolbarTool): JSX.Element | null => {
+    const element = renderTool(tool)
+    if (!element) return null
+    // Con la scena bloccata si disattivano solo gli strumenti che modificano il testo (vedi VIEW_ONLY_TOOLS).
+    const locked = disabled && !VIEW_ONLY_TOOLS.has(tool)
+    return <div key={tool} className={locked ? 'pointer-events-none opacity-40' : ''}>{element}</div>
+  }
+
+  return <div className="mb-2 flex flex-wrap items-center gap-0.5 rounded border border-gray-200 bg-gray-50 p-1.5 dark:border-gray-700 dark:bg-gray-800">
     {/* L'ordine di rendering segue visibleTools (impostato in Impostazioni > Editor
         con drag&drop, vedi SettingsPage.tsx) invece di un ordine fisso nel JSX:
         senza questo, riordinare gli strumenti nelle impostazioni non avrebbe
         alcun effetto visibile sulla toolbar reale. Il filter rimuove eventuali
         duplicati residui in vecchie preferenze salvate. */}
-    {visibleTools.filter((tool, index) => visibleTools.indexOf(tool) === index).map(renderTool)}
+    {visibleTools.filter((tool, index) => visibleTools.indexOf(tool) === index).map(renderWrapped)}
   </div>
 }

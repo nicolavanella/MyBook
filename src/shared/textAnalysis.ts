@@ -74,6 +74,8 @@ export interface TextAnalysis {
   keywords: { word: string; count: number }[]
 }
 
+import type { BookLanguage } from './i18n'
+
 /** Parole italiane troppo comuni per essere "parole chiave" significative. Elenco non esaustivo, di uso pratico. */
 const ITALIAN_STOPWORDS = new Set([
   'il','lo','la','i','gli','le','un','uno','una','di','del','dello','della','dei','degli','delle',
@@ -89,6 +91,34 @@ const ITALIAN_STOPWORDS = new Set([
   'avere','ho','hai','ha','abbiamo','avete','hanno','aveva','avevo','avevano',
   'fare','faceva','fece','fatto','fatta','disse','dice','dire','c’è', 'c\'è', 'un\'', 'dell\'', 'all\''
 ])
+
+/**
+ * v0.4.0 — stesso criterio per i libri scritti in inglese (vedi "Lingua del
+ * libro" del progetto). Include le contrazioni più comuni nelle due grafie
+ * dell'apostrofo (' e ’), perché il tokenizzatore le tiene intere ("don't").
+ * Le parole sotto le 4 lettere sono comunque già escluse a monte.
+ */
+const ENGLISH_STOPWORDS = new Set([
+  'the','a','an','and','or','but','if','then','else','of','to','in','on','at','by','for','with','about','against',
+  'between','into','through','during','before','after','above','below','from','up','down','out','off','over','under',
+  'again','further','once','here','there','when','where','why','how','all','any','both','each','few','more','most',
+  'other','some','such','nor','not','only','own','same','than','too','very','can','will','just','should','now',
+  'i','me','my','myself','we','our','ours','ourselves','you','your','yours','yourself','yourselves','he','him','his',
+  'himself','she','her','hers','herself','it','its','itself','they','them','their','theirs','themselves',
+  'what','which','who','whom','this','that','these','those','am','is','are','was','were','be','been','being',
+  'have','has','had','having','do','does','did','doing','would','could','might','must','shall','may',
+  'said','says','say','get','got','went','going','come','came','like','upon','back','even','still','also','ever',
+  'never','always','while','because','until','though','although','around','away','without','within','across',
+  "don't","don’t","can't","can’t","won't","won’t","isn't","isn’t","wasn't","wasn’t","didn't","didn’t","doesn't","doesn’t",
+  "it's","it’s","i'm","i’m","i've","i’ve","i'll","i’ll","i'd","i’d","you're","you’re","you've","you’ve","you'll","you’ll",
+  "he's","he’s","she's","she’s","that's","that’s","there's","there’s","what's","what’s","let's","let’s","they're","they’re",
+  "we're","we’re","couldn't","couldn’t","wouldn't","wouldn’t","shouldn't","shouldn’t","haven't","haven’t","hadn't","hadn’t"
+])
+
+const STOPWORDS_BY_LANGUAGE: Record<BookLanguage, Set<string>> = {
+  it: ITALIAN_STOPWORDS,
+  en: ENGLISH_STOPWORDS
+}
 
 /** true se il carattere può far parte di una "parola" (lettere Unicode, incluse le accentate italiane, e l'apostrofo). */
 function tokenizeWords(text: string): string[] {
@@ -119,8 +149,10 @@ function countSentences(text: string): number {
  * statistiche testuali. `keywordLimit` è il numero massimo di parole chiave
  * restituite (le più frequenti, a parità di frequenza nell'ordine di prima
  * apparizione grazie alla stabilità di Array.prototype.sort).
+ * `bookLanguage` (v0.4.0) sceglie l'elenco di stopword: di default italiano,
+ * come prima della 0.4.0, quindi le chiamate esistenti non cambiano.
  */
-export function analyzeText(paragraphs: string[], keywordLimit = 15): TextAnalysis {
+export function analyzeText(paragraphs: string[], keywordLimit = 15, bookLanguage: BookLanguage = 'it'): TextAnalysis {
   const nonEmpty = paragraphs.map((p) => p.trim()).filter(Boolean)
   const fullText = nonEmpty.join(' ')
 
@@ -129,7 +161,8 @@ export function analyzeText(paragraphs: string[], keywordLimit = 15): TextAnalys
   const charsWithoutSpaces = fullText.replace(/\s/g, '').length
   const sentences = countSentences(fullText)
 
-  const tokens = tokenizeWords(fullText).filter((w) => w.length >= 4 && !ITALIAN_STOPWORDS.has(w))
+  const stopwords = STOPWORDS_BY_LANGUAGE[bookLanguage] ?? ITALIAN_STOPWORDS
+  const tokens = tokenizeWords(fullText).filter((w) => w.length >= 4 && !stopwords.has(w))
   const frequency = new Map<string, number>()
   for (const token of tokens) frequency.set(token, (frequency.get(token) ?? 0) + 1)
   const keywords = [...frequency.entries()]

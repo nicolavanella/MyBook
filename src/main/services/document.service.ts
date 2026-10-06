@@ -5,6 +5,7 @@ import type {
   UpdateDocumentNodeInput
 } from '@shared/schemas/document.schema'
 import { getConfig } from '../config'
+import { tm } from '../i18n'
 
 /** Estrae testo semplice da un documento TipTap JSON, per contare parole/caratteri. */
 import { extractParagraphs, analyzeText } from '@shared/textAnalysis'
@@ -123,7 +124,7 @@ export class DocumentService {
    */
   duplicate(id: string) {
     const original = this.repo.findById(id)
-    if (!original) throw new Error(`DocumentNode non trovato: ${id}`)
+    if (!original) throw new Error(`DocumentNode not found: ${id}`)
 
     const copyNode = (node: NonNullable<typeof original>, parentId: string | null, isTop: boolean) => {
       const newId = uuid()
@@ -133,7 +134,7 @@ export class DocumentService {
         projectId: node.project_id,
         parentId,
         nodeType: node.node_type,
-        title: isTop ? `${node.title} (copia)` : node.title,
+        title: isTop ? `${node.title} ${tm('common.copySuffix')}` : node.title,
         subtitle: node.subtitle,
         description: node.description,
         notes: node.notes,
@@ -164,7 +165,7 @@ export class DocumentService {
    */
   createRevision(documentNodeId: string, reason: string) {
     const node = this.repo.findById(documentNodeId)
-    if (!node) throw new Error(`DocumentNode non trovato: ${documentNodeId}`)
+    if (!node) throw new Error(`DocumentNode not found: ${documentNodeId}`)
 
     const revisionId = uuid()
     this.repo.insertRevision({
@@ -202,7 +203,7 @@ export class DocumentService {
   compareRevisions(revisionIdA: string, revisionIdB: string) {
     const a = this.repo.findRevision(revisionIdA)
     const b = this.repo.findRevision(revisionIdB)
-    if (!a || !b) throw new Error('Una delle revisioni non esiste')
+    if (!a || !b) throw new Error('One of the revisions does not exist')
     if (a.document_node_id !== b.document_node_id) throw new Error('Le revisioni appartengono a documenti diversi')
     const linesA = extractPlainText(a.content).split(/\n|(?<=[.!?])\s+/).filter(Boolean)
     const linesB = extractPlainText(b.content).split(/\n|(?<=[.!?])\s+/).filter(Boolean)
@@ -219,7 +220,7 @@ export class DocumentService {
 
   restoreRevision(revisionId: string) {
     const revision = this.repo.findRevision(revisionId)
-    if (!revision) throw new Error(`Revisione non trovata: ${revisionId}`)
+    if (!revision) throw new Error(`Revision not found: ${revisionId}`)
 
     this.repo.update(revision.document_node_id, {
       content: revision.content,
@@ -300,6 +301,8 @@ export class DocumentService {
    */
   analysis(projectId: string) {
     const chapters = this.repo.chapterContents(projectId)
+    // v0.4.0: le stopword dipendono dalla lingua del LIBRO (non dell'interfaccia).
+    const bookLanguage = this.repo.bookLanguage(projectId)
     // v0.3.8: i conteggi dei tag per capitolo vengono da scene_tags (indice
     // persistente, sempre aggiornato ad ogni salvataggio di una scena), non
     // più da una scansione del JSON di ogni scena ad ogni richiesta.
@@ -312,10 +315,10 @@ export class DocumentService {
     const perChapter = chapters.map((c) => {
       const paragraphs = c.sceneContents.flatMap((content) => extractParagraphs(content))
       const tags = (tagsByChapter.get(c.chapterId) ?? []).sort((a, b) => b.count - a.count)
-      return { chapterId: c.chapterId, chapterTitle: c.chapterTitle, ...analyzeText(paragraphs), tags }
+      return { chapterId: c.chapterId, chapterTitle: c.chapterTitle, ...analyzeText(paragraphs, 15, bookLanguage), tags }
     })
     const allParagraphs = chapters.flatMap((c) => c.sceneContents.flatMap((content) => extractParagraphs(content)))
-    return { total: analyzeText(allParagraphs), chapters: this.sortByManuscriptOrder(projectId, perChapter, (c) => c.chapterId) }
+    return { total: analyzeText(allParagraphs, 15, bookLanguage), chapters: this.sortByManuscriptOrder(projectId, perChapter, (c) => c.chapterId) }
   }
 
   /**

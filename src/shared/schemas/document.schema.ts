@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+/** v0.4.0: lingua in cui è scritto il libro (vedi migrazione 024). Distinta dalla lingua dell'interfaccia. */
+export const BookLanguageSchema = z.enum(['it', 'en'])
+
 export const ProjectSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1),
@@ -10,20 +13,22 @@ export const ProjectSchema = z.object({
   notes: z.string().optional(), // sezione "Struttura"
   plot: z.string().optional(), // "Trama", sezione "Narrazione"
   fabula: z.string().optional(), // "Fabula", sezione "Narrazione"
+  book_language: BookLanguageSchema.optional(),
   created_at: z.string(),
   updated_at: z.string()
 })
 export type Project = z.infer<typeof ProjectSchema>
 
 export const CreateProjectInput = z.object({
-  title: z.string().min(1, 'Il titolo è obbligatorio'),
+  title: z.string().min(1, 'Title is required'),
   subtitle: z.string().optional(),
   author: z.string().optional(),
   year: z.number().int().optional(),
   description: z.string().optional(),
   notes: z.string().optional(),
   plot: z.string().optional(),
-  fabula: z.string().optional()
+  fabula: z.string().optional(),
+  book_language: BookLanguageSchema.optional()
 })
 export type CreateProjectInput = z.infer<typeof CreateProjectInput>
 
@@ -38,7 +43,8 @@ export const UpdateProjectInput = z.object({
       description: z.string().optional(),
       notes: z.string().optional(),
       plot: z.string().optional(),
-      fabula: z.string().optional()
+      fabula: z.string().optional(),
+      book_language: BookLanguageSchema.optional()
     })
     .partial()
 })
@@ -75,7 +81,7 @@ export const CreateDocumentNodeInput = z.object({
   projectId: z.string().uuid(),
   parentId: z.string().uuid().nullable().optional(),
   nodeType: NodeType,
-  title: z.string().min(1, 'Il titolo è obbligatorio'),
+  title: z.string().min(1, 'Title is required'),
   subtitle: z.string().optional(),
   description: z.string().optional(),
   notes: z.string().optional()

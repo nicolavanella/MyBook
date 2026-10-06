@@ -1,5 +1,6 @@
 import { ipcMain, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
 import { IpcChannels } from '@shared/ipc/channels'
+import { tm } from './i18n'
 
 /**
  * true quando l'editor TipTap della scena ha il focus (comunicato dal
@@ -70,23 +71,23 @@ export function registerEditorContextMenu(win: BrowserWindow): void {
           items.push({ label: suggestion, click: () => win.webContents.replaceMisspelling(suggestion) })
         }
       } else {
-        items.push({ label: 'Nessun suggerimento', enabled: false })
+        items.push({ label: tm('contextMenu.noSuggestions'), enabled: false })
       }
       items.push({ type: 'separator' })
       items.push({
-        label: 'Aggiungi al dizionario',
+        label: tm('contextMenu.addToDictionary'),
         click: () => win.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
       })
       items.push({
-        label: 'Ignora',
+        label: tm('contextMenu.ignore'),
         click: () => win.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
       })
       items.push({ type: 'separator' })
     }
 
-    items.push({ label: 'Copia', role: 'copy', enabled: params.editFlags.canCopy })
-    items.push({ label: 'Taglia', role: 'cut', enabled: params.editFlags.canCut })
-    items.push({ label: 'Incolla', role: 'paste', enabled: params.editFlags.canPaste })
+    items.push({ label: tm('contextMenu.copy'), role: 'copy', enabled: params.editFlags.canCopy })
+    items.push({ label: tm('contextMenu.cut'), role: 'cut', enabled: params.editFlags.canCut })
+    items.push({ label: tm('contextMenu.paste'), role: 'paste', enabled: params.editFlags.canPaste })
 
     if (params.isEditable && isSceneEditorFocused) {
       const annotationItems: MenuItemConstructorOptions[] = []
@@ -100,25 +101,25 @@ export function registerEditorContextMenu(win: BrowserWindow): void {
       lastContextClickKind = 'none'
 
       if (clickedKind === 'comment' && commentsEnabled) {
-        annotationItems.push({ label: 'Mostra commento', click: () => win.webContents.send(IpcChannels.editor.showComment) })
-        annotationItems.push({ label: 'Elimina commento', click: () => win.webContents.send(IpcChannels.editor.deleteCommentAt) })
+        annotationItems.push({ label: tm('contextMenu.showComment'), click: () => win.webContents.send(IpcChannels.editor.showComment) })
+        annotationItems.push({ label: tm('contextMenu.deleteComment'), click: () => win.webContents.send(IpcChannels.editor.deleteCommentAt) })
       } else if (clickedKind === 'tag' && tagsEnabled) {
-        annotationItems.push({ label: 'Elimina tag', click: () => win.webContents.send(IpcChannels.editor.deleteTagAt) })
+        annotationItems.push({ label: tm('contextMenu.deleteTag'), click: () => win.webContents.send(IpcChannels.editor.deleteTagAt) })
       } else {
         if (commentsEnabled) {
           annotationItems.push({
-            label: 'Aggiungi commento…',
+            label: tm('contextMenu.addComment'),
             click: () => win.webContents.send(IpcChannels.editor.addComment)
           })
         }
         if (tagsEnabled) {
           annotationItems.push({
-            label: 'Aggiungi tag…',
+            label: tm('contextMenu.addTag'),
             submenu: [
-              { label: 'Personaggio…', click: () => win.webContents.send(IpcChannels.editor.addTag, 'character') },
-              { label: 'Località…', click: () => win.webContents.send(IpcChannels.editor.addTag, 'location') },
-              { label: 'Oggetto…', click: () => win.webContents.send(IpcChannels.editor.addTag, 'object') },
-              { label: 'Evento…', click: () => win.webContents.send(IpcChannels.editor.addTag, 'event') }
+              { label: `${tm('entityType.character')}…`, click: () => win.webContents.send(IpcChannels.editor.addTag, 'character') },
+              { label: `${tm('entityType.location')}…`, click: () => win.webContents.send(IpcChannels.editor.addTag, 'location') },
+              { label: `${tm('entityType.object')}…`, click: () => win.webContents.send(IpcChannels.editor.addTag, 'object') },
+              { label: `${tm('entityType.event')}…`, click: () => win.webContents.send(IpcChannels.editor.addTag, 'event') }
             ]
           })
         }

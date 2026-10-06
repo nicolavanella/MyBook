@@ -18,8 +18,8 @@ export class ProjectRepository {
     this.stmtList = db.prepare('SELECT * FROM projects ORDER BY updated_at DESC')
     this.stmtFindById = db.prepare('SELECT * FROM projects WHERE id = ?')
     this.stmtInsertProject = db.prepare(
-      `INSERT INTO projects (id, title, subtitle, author, year, description, notes, plot, fabula)
-       VALUES (@id, @title, @subtitle, @author, @year, @description, @notes, @plot, @fabula)`
+      `INSERT INTO projects (id, title, subtitle, author, year, description, notes, plot, fabula, book_language)
+       VALUES (@id, @title, @subtitle, @author, @year, @description, @notes, @plot, @fabula, @book_language)`
     )
     this.stmtInsertSettings = db.prepare(
       'INSERT INTO project_settings (project_id, settings) VALUES (?, ?)'
@@ -71,8 +71,10 @@ export class ProjectRepository {
     notes: string
     plot: string
     fabula: string
+    /** v0.4.0: facoltativo — chi non lo indica (codice e test precedenti alla 0.4.0) ottiene 'it', il comportamento storico. */
+    book_language?: string
   }) {
-    this.stmtInsertProject.run(project)
+    this.stmtInsertProject.run({ ...project, book_language: project.book_language ?? 'it' })
     // Ogni progetto nasce con impostazioni di default vuote (JSON), sovrascrivibili
     // dalla UI (autosave, soglie di versioning, ecc. — vedi config/database.yml)
     this.stmtInsertSettings.run(project.id, '{}')

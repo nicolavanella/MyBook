@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import AutosizeTextarea from '@renderer/components/AutosizeTextarea'
 import type { DocumentNode } from '@renderer/stores/useProjectStore'
+import type { TranslationKey } from '@shared/i18n'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 export type MindmapNodeType = 'free_note' | 'character' | 'location' | 'object' | 'event' | 'chapter' | 'scene'
 
@@ -9,14 +11,14 @@ export interface EntityOption {
   label: string
 }
 
-const TYPE_LABELS: Record<MindmapNodeType, string> = {
-  free_note: 'Nota libera',
-  character: 'Personaggio',
-  location: 'Località',
-  object: 'Oggetto',
-  event: 'Evento (timeline)',
-  chapter: 'Capitolo',
-  scene: 'Scena'
+const TYPE_LABELS: Record<MindmapNodeType, TranslationKey> = {
+  free_note: 'mindmap.type.freeNote',
+  character: 'entityType.character',
+  location: 'entityType.location',
+  object: 'entityType.object',
+  event: 'mindmap.type.event',
+  chapter: 'mindmap.type.chapter',
+  scene: 'mindmap.type.scene'
 }
 
 interface Props {
@@ -26,6 +28,7 @@ interface Props {
 }
 
 export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Props): JSX.Element {
+  const { t } = useTranslation()
   const [nodeType, setNodeType] = useState<MindmapNodeType>('free_note')
   const [freeLabel, setFreeLabel] = useState('')
   const [description, setDescription] = useState('')
@@ -103,9 +106,9 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
         className="w-96 rounded-lg bg-white p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">Aggiungi nodo alla mappa</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-800">{t('mindmap.add.title')}</h2>
 
-        <label className="mb-1 block text-xs font-medium text-gray-600">Tipo</label>
+        <label className="mb-1 block text-xs font-medium text-gray-600">{t('mindmap.type')}</label>
         <select
           className="mb-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
           value={nodeType}
@@ -114,33 +117,33 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
             setSelectedEntityId('')
           }}
         >
-          {Object.entries(TYPE_LABELS).map(([value, label]) => (
+          {Object.entries(TYPE_LABELS).map(([value, labelKey]) => (
             <option key={value} value={value}>
-              {label}
+              {t(labelKey)}
             </option>
           ))}
         </select>
 
         {isFree ? (
           <>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Testo del nodo</label>
+            <label className="mb-1 block text-xs font-medium text-gray-600">{t('mindmap.nodeText')}</label>
             <input
               autoFocus
               className="mb-4 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
               value={freeLabel}
               onChange={(e) => setFreeLabel(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-              placeholder="Es. Tema del tradimento"
+              placeholder={t('mindmap.nodeTextPlaceholder')}
             />
           </>
         ) : (
           <>
             <label className="mb-1 block text-xs font-medium text-gray-600">
-              Seleziona {TYPE_LABELS[nodeType].toLowerCase()}
+              {t('mindmap.select', { type: t(TYPE_LABELS[nodeType]).toLowerCase() })}
             </label>
             {entityListForType.length === 0 ? (
               <p className="mb-4 text-xs text-gray-400">
-                Nessun elemento disponibile — creane uno prima nella sezione dedicata.
+                {t('mindmap.noItems')}
               </p>
             ) : (
               <select
@@ -150,7 +153,7 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
                 onChange={(e) => setSelectedEntityId(e.target.value)}
               >
                 <option value="" disabled>
-                  — scegli —
+                  {t('mindmap.choose')}
                 </option>
                 {entityListForType.map((e) => (
                   <option key={e.id} value={e.id}>
@@ -162,13 +165,13 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
           </>
         )}
 
-        <label className="mb-1 block text-xs font-medium text-gray-600">Descrizione (opzionale)</label>
+        <label className="mb-1 block text-xs font-medium text-gray-600">{t('mindmap.descriptionOptional')}</label>
         <AutosizeTextarea
           rows={2}
           className="mb-4 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Note aggiuntive su questo nodo…"
+          placeholder={t('mindmap.descriptionPlaceholder')}
         />
 
         <div className="flex justify-end gap-2">
@@ -176,14 +179,14 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
             onClick={onClose}
             className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
           >
-            Annulla
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
             className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white disabled:bg-gray-300"
           >
-            Aggiungi
+            {t('common.add')}
           </button>
         </div>
       </div>

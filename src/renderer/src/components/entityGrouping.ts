@@ -22,8 +22,10 @@ export function filterEntities<T extends GroupableItem>(items: T[], query: strin
 /**
  * Raggruppa gli item per `group_name`: gruppi con nome in ordine alfabetico,
  * "Senza gruppo" (item senza group_name, o con spazi vuoti) sempre in fondo.
+ * v0.4.0: l'etichetta di quest'ultimo gruppo è un parametro (`ungroupedLabel`), così la UI può
+ * passarla tradotta; il default italiano mantiene invariato il comportamento precedente.
  */
-export function groupEntities<T extends GroupableItem>(items: T[]): EntityGroup<T>[] {
+export function groupEntities<T extends GroupableItem>(items: T[], ungroupedLabel = 'Senza gruppo'): EntityGroup<T>[] {
   const map = new Map<string, T[]>()
   for (const item of items) {
     const key = item.group_name?.trim() || UNGROUPED_KEY
@@ -32,5 +34,5 @@ export function groupEntities<T extends GroupableItem>(items: T[]): EntityGroup<
   }
   const named = [...map.keys()].filter((k) => k !== UNGROUPED_KEY).sort((a, b) => a.localeCompare(b))
   const ordered = map.has(UNGROUPED_KEY) ? [...named, UNGROUPED_KEY] : named
-  return ordered.map((key) => ({ key, label: key === UNGROUPED_KEY ? 'Senza gruppo' : key, items: map.get(key)! }))
+  return ordered.map((key) => ({ key, label: key === UNGROUPED_KEY ? ungroupedLabel : key, items: map.get(key)! }))
 }

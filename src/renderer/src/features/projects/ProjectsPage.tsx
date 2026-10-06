@@ -4,6 +4,8 @@ import { MoreVertical, BookOpen, FileUp } from 'lucide-react'
 import { useProjectStore } from '@renderer/stores/useProjectStore'
 import ProjectFormModal, { type ProjectFormValues } from './ProjectFormModal'
 import { useConfirm } from '@renderer/components/ConfirmDialog'
+import { useTranslation } from '@renderer/i18n/useTranslation'
+import { localeOf, type Translator, type Language } from '@shared/i18n'
 
 interface ProjectWithStats {
   id: string
@@ -16,20 +18,21 @@ interface ProjectWithStats {
   chapterCount: number
 }
 
-function formatRelative(dateStr: string | null): string {
-  if (!dateStr) return 'Mai aperto'
+function formatRelative(dateStr: string | null, t: Translator, language: Language): string {
+  if (!dateStr) return t('projects.neverOpened')
   const date = new Date(dateStr)
   const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24))
-  if (days <= 0) return 'Oggi'
-  if (days === 1) return 'Ieri'
-  if (days < 30) return `${days} giorni fa`
-  return date.toLocaleDateString('it-IT')
+  if (days <= 0) return t('projects.today')
+  if (days === 1) return t('projects.yesterday')
+  if (days < 30) return t('projects.daysAgo', { count: days })
+  return date.toLocaleDateString(localeOf(language))
 }
 
 export default function ProjectsPage(): JSX.Element {
   const { setActiveProject } = useProjectStore()
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const { t, language, locale } = useTranslation()
   const [projects, setProjects] = useState<ProjectWithStats[]>([])
   const [showNewModal, setShowNewModal] = useState(false)
   const [openMenu, setOpenMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -58,7 +61,8 @@ export default function ProjectsPage(): JSX.Element {
       description: values.description || undefined,
       notes: values.notes || undefined,
       plot: values.plot || undefined,
-      fabula: values.fabula || undefined
+      fabula: values.fabula || undefined,
+      book_language: values.bookLanguage
     })
     reload()
     setShowNewModal(false)
@@ -73,8 +77,8 @@ export default function ProjectsPage(): JSX.Element {
   const handleDelete = async (id: string, title: string) => {
     setOpenMenu(null)
     const ok = await confirm({
-      message: `Eliminare definitivamente "${title}"? Tutti i capitoli, scene, personaggi, località e mappe andranno persi. L'operazione non è reversibile.`,
-      confirmLabel: 'Elimina',
+      message: t('projects.confirmDelete', { title }),
+      confirmLabel: t('common.delete'),
       danger: true
     })
     if (!ok) return
@@ -107,18 +111,18 @@ export default function ProjectsPage(): JSX.Element {
   return (
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Progetti</h1>
+        <h1 className="text-xl font-semibold">{t('nav.projects')}</h1>
         <button
           onClick={() => setShowNewModal(true)}
           className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white"
         >
-          + Nuovo progetto
+          {t('projects.new')}
         </button>
       </div>
 
       {projects.length === 0 ? (
         <p className="text-sm text-gray-400">
-          Nessun progetto ancora. Creane uno per iniziare a scrivere.
+          {t('projects.empty')}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -134,11 +138,9 @@ export default function ProjectsPage(): JSX.Element {
                 </div>
                 {p.subtitle && <p className="mb-2 truncate text-xs text-gray-500">{p.subtitle}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
-                  <span>{p.totalWords.toLocaleString('it-IT')} parole</span>
-                  <span>
-                    {p.chapterCount} {p.chapterCount === 1 ? 'capitolo' : 'capitoli'}
-                  </span>
-                  <span>Aperto: {formatRelative(p.last_opened_at)}</span>
+                  <span>{t('projects.words', { count: p.totalWords, n: p.totalWords.toLocaleString(locale) })}</span>
+                  <span>{t('projects.chapters', { count: p.chapterCount })}</span>
+                  <span>{t('projects.openedAgo', { when: formatRelative(p.last_opened_at, t, language) })}</span>
                 </div>
               </button>
 
@@ -164,25 +166,25 @@ export default function ProjectsPage(): JSX.Element {
                       onClick={() => handleDuplicate(p.id)}
                       className="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
                     >
-                      Crea copia
+                      {t('projects.menu.duplicate')}
                     </button>
                     <button
                       onClick={() => handleExportProject(p.id)}
                       className="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
                     >
-                      Esporta progetto
+                      {t('projects.menu.exportProject')}
                     </button>
                     <button
                       onClick={() => handleExport(p.id)}
                       className="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
                     >
-                      Esporta manoscritto
+                      {t('projects.menu.exportManuscript')}
                     </button>
                     <button
                       onClick={() => handleDelete(p.id, p.title)}
                       className="block w-full px-3 py-1.5 text-left text-red-600 hover:bg-red-50"
                     >
-                      Elimina
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>
@@ -194,21 +196,21 @@ export default function ProjectsPage(): JSX.Element {
 
       <div className="mt-8 flex items-center justify-between rounded border border-dashed border-gray-300 p-4">
         <div>
-          <p className="text-sm font-medium text-gray-700">Importa progetto</p>
-          <p className="mt-1 text-sm text-gray-400">Ripristina un file JSON esportato da MyBook.</p>
+          <p className="text-sm font-medium text-gray-700">{t('projects.import.title')}</p>
+          <p className="mt-1 text-sm text-gray-400">{t('projects.import.description')}</p>
         </div>
         <button
           onClick={handleImportProject}
           className="inline-flex items-center gap-2 rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <FileUp size={16} /> Seleziona file
+          <FileUp size={16} /> {t('projects.import.pick')}
         </button>
       </div>
 
       {showNewModal && (
         <ProjectFormModal
-          title="Nuovo progetto"
-          submitLabel="Crea"
+          title={t('projects.new.title')}
+          submitLabel={t('common.create')}
           onClose={() => setShowNewModal(false)}
           onSubmit={handleCreate}
         />

@@ -24,7 +24,7 @@ export class EntityRepository {
   private validateKeys(keys: string[], allowId = false): void {
     const allowed = ALLOWED_COLUMNS[this.table]
     const invalid = keys.filter((k) => !allowed.has(k) || (!allowId && k === 'id'))
-    if (invalid.length) throw new Error(`Campi non consentiti per ${this.table}: ${invalid.join(', ')}`)
+    if (invalid.length) throw new Error(`Fields not allowed for ${this.table}: ${invalid.join(', ')}`)
   }
 
   list(projectId: string) { return this.stmtList.all(projectId) }

@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3'
 import { v4 as uuid } from 'uuid'
 import { z } from 'zod'
+import { BookLanguageSchema } from '@shared/schemas/document.schema'
 
 const entityList = z.array(z.record(z.unknown())).default([])
 export const ProjectPackageSchema = z.object({
@@ -26,11 +27,11 @@ export class ProjectTransferService {
 
   exportProject(projectId: string): ProjectPackage {
     const project = this.db.prepare('SELECT * FROM projects WHERE id=?').get(projectId) as any
-    if (!project) throw new Error('Progetto non trovato')
+    if (!project) throw new Error('Project not found')
     const all = (sql: string) => this.db.prepare(sql).all(projectId) as Record<string, unknown>[]
     return {
       format: 'mybook-project', version: 1, exportedAt: new Date().toISOString(),
-      application: { name: 'MyBook', version: '0.2.6' }, project,
+      application: { name: 'MyBook', version: '0.4.0' }, project,
       settings: (this.db.prepare('SELECT settings FROM project_settings WHERE project_id=?').get(projectId) as any)?.settings ?? '{}',
       data: {
         documentNodes: all('SELECT * FROM document_nodes WHERE project_id=?'),
@@ -56,8 +57,10 @@ export class ProjectTransferService {
 
     return this.db.transaction(() => {
       const p = pack.project as Record<string, unknown>
-      this.db.prepare('INSERT INTO projects (id,title,subtitle,author,year,description,notes,plot,fabula) VALUES (?,?,?,?,?,?,?,?,?)')
-        .run(newProjectId, get(p,'title'), get(p,'subtitle'), get(p,'author',null), get(p,'year',null), get(p,'description'), get(p,'notes'), get(p,'plot'), get(p,'fabula'))
+      this.db.prepare('INSERT INTO projects (id,title,subtitle,author,year,description,notes,plot,fabula,book_language) VALUES (?,?,?,?,?,?,?,?,?,?)')
+        .run(newProjectId, get(p,'title'), get(p,'subtitle'), get(p,'author',null), get(p,'year',null), get(p,'description'), get(p,'notes'), get(p,'plot'), get(p,'fabula'),
+          // v0.4.0: i pacchetti esportati prima della 0.4.0 non hanno il campo: restano "italiano", come l'app li ha sempre trattati.
+          BookLanguageSchema.catch('it').parse(p.book_language))
       this.db.prepare('INSERT INTO project_settings (project_id,settings) VALUES (?,?)').run(newProjectId, pack.settings)
 
       const insNode = this.db.prepare('INSERT INTO document_nodes (id,project_id,parent_id,node_type,title,subtitle,description,notes,status,order_index,content,word_count,char_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')

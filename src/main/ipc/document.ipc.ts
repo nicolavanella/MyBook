@@ -7,6 +7,7 @@ import {
 } from '@shared/schemas/document.schema'
 import type { DocumentService } from '../services/document.service'
 import type { ActivityLogService } from '../services/activity-log.service'
+import { tm } from '../i18n'
 import type { ActivityLogEntry } from '@shared/ipc/channels'
 
 /** Etichetta del registro attività (v0.3.5) per tipo di nodo del Manoscritto: prologo/epilogo sono trattati come "Capitolo", scena/sezione come "Scena". */
@@ -97,7 +98,7 @@ export function registerDocumentIpc(service: DocumentService, activityLog: Activ
           NODE_ENTITY_TYPE[movedBefore.node_type] ?? 'scene',
           'moved',
           movedBefore.title,
-          destination ? `verso "${destination}"` : 'verso il livello principale',
+          destination ? tm('log.movedTo', { destination }) : tm('log.movedToRoot'),
           movedBefore.id
         )
       }

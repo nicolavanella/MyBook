@@ -4,6 +4,7 @@ import JSZip from 'jszip'
 import { v4 as uuid } from 'uuid'
 import { tiptapToBlocks, blocksToPlainText, blocksToHtml, blocksToMarkdown, type Block } from './tiptap-convert'
 import { dataUrlToImage, scaleToMaxWidth } from './image-dimensions'
+import { localeOf, normalizeLanguage, translate, type BookLanguage } from '@shared/i18n'
 
 interface ExportNode {
   id: string
@@ -19,6 +20,8 @@ interface ProjectMeta {
   subtitle: string
   author: string | null
   year: number | null
+  /** v0.4.0: lingua del libro — metadati e titoli fissi dell'export seguono questa, NON la lingua dell'interfaccia. */
+  book_language: BookLanguage
 }
 
 export type SceneSeparator = 'title' | 'stars' | 'none'
@@ -75,15 +78,16 @@ export class ExportService {
 
   private getProjectMeta(projectId: string): ProjectMeta {
     const row = this.db
-      .prepare('SELECT title, subtitle, author, year FROM projects WHERE id = ?')
+      .prepare('SELECT title, subtitle, author, year, book_language FROM projects WHERE id = ?')
       .get(projectId) as ProjectMeta | undefined
-    return row ?? { title: 'Manoscritto', subtitle: '', author: null, year: null }
+    if (!row) return { title: translate('it', 'export.doc.manuscript'), subtitle: '', author: null, year: null, book_language: 'it' }
+    return { ...row, book_language: normalizeLanguage(row.book_language) }
   }
 
   /** Nome file suggerito per il dialog di salvataggio: il titolo del progetto, sanificato. */
   suggestedFileName(projectId: string, extension: string): string {
-    const { title } = this.getProjectMeta(projectId)
-    const safe = title.trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ') || 'manoscritto'
+    const { title, book_language } = this.getProjectMeta(projectId)
+    const safe = title.trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ') || translate(book_language, 'export.doc.defaultFileName')
     return `${safe}.${extension}`
   }
 
@@ -227,7 +231,7 @@ export class ExportService {
         return s.showHeading ? `<h1>${s.title}</h1>\n${blocksToHtml(s.blocks)}` : blocksToHtml(s.blocks)
       })
       .join('\n')
-    return `<html><head><meta charset="utf-8"></head><body>${titlePage}${body}</body></html>`
+    return `<html lang="${meta.book_language}"><head><meta charset="utf-8"></head><body>${titlePage}${body}</body></html>`
   }
 
   /**
@@ -311,7 +315,11 @@ export class ExportService {
         children.push(this.blockToDocxParagraph(b))
       }
     }
-    const doc = new Document({ sections: [{ children }] })
+    // v0.4.0: lingua del documento Word = lingua del libro (correzione ortografica e sillabazione di Word).
+    const doc = new Document({
+      styles: { default: { document: { run: { language: { value: localeOf(meta.book_language) } } } } },
+      sections: [{ children }]
+    })
     return Packer.toBuffer(doc)
   }
 
@@ -373,7 +381,7 @@ export class ExportService {
       'OEBPS/nav.xhtml',
       `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
-<head><title>Indice</title></head>
+<head><title>${translate(meta.book_language, 'export.doc.contents')}</title></head>
 <body>
   <nav epub:type="toc">
     <ol>
@@ -393,7 +401,7 @@ export class ExportService {
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:identifier id="bookid">urn:uuid:${bookId}</dc:identifier>
     <dc:title>${escapeXml(meta.title)}</dc:title>
-    <dc:language>it</dc:language>
+    <dc:language>${meta.book_language}</dc:language>
     ${meta.author ? `<dc:creator>${escapeXml(meta.author)}</dc:creator>` : ''}
   </metadata>
   <manifest>

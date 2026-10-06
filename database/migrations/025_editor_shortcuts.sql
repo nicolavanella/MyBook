@@ -1,0 +1,12 @@
+-- MyBook — 025_editor_shortcuts.sql (v0.4.0)
+-- Scorciatoie da tastiera dell'editor, configurabili da Impostazioni >
+-- Editor > Strumenti toolbar.
+--
+-- Si salvano SOLO le personalizzazioni dell'utente, come oggetto JSON
+-- { "<azione>": "<combinazione>" } (es. {"bold":"Mod+Shift+M","link":""}),
+-- dove "" significa "nessuna scorciatoia". I default vivono nel codice
+-- (src/shared/shortcuts.ts): chi non tocca nulla ha '{}' e riceve
+-- automaticamente anche i default di eventuali azioni aggiunte in futuro.
+-- "Mod" = Ctrl su Windows/Linux, Cmd su macOS: il valore salvato resta
+-- valido se il database passa da un sistema all'altro.
+ALTER TABLE app_settings ADD COLUMN editor_shortcuts TEXT NOT NULL DEFAULT '{}';

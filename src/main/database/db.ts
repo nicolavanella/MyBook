@@ -70,6 +70,6 @@ export function closeDb(): void {
 
 /** Percorso del file SQLite corrente, usato dal servizio di backup. */
 export function getDbPath(): string {
-  if (!dbFilePath) throw new Error('Database non ancora inizializzato: chiamare getDb() prima.')
+  if (!dbFilePath) throw new Error('Database not initialised yet: call initDb() first.')
   return dbFilePath
 }

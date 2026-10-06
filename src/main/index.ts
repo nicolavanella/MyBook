@@ -20,6 +20,8 @@ import { ProjectTransferService } from './services/project-transfer.service'
 import { DocumentService } from './services/document.service'
 import { ExportService } from './services/export.service'
 import { SettingsService } from './services/settings.service'
+import { setLanguageProvider } from './i18n'
+import { pickInitialLanguage, type Language } from '@shared/i18n'
 import { MediaService } from './services/media.service'
 import { ActivityLogService } from './services/activity-log.service'
 
@@ -85,11 +87,18 @@ function resolveIconPath(): string {
  * viene copiato tra le risorse extra da electron-builder (electron-builder.yml)
  * — stesso pattern di resolveIconPath()/resolveMigrationsDir().
  */
-function resolveManualPath(): string {
+/** v0.4.0: il manuale esiste in italiano e in inglese; se ne importa uno solo, quello della lingua dell'interfaccia. */
+const MANUAL_FILE_BY_LANGUAGE: Record<Language, string> = {
+  it: 'Manuale.mybook.json',
+  en: 'Manual.en.mybook.json'
+}
+
+function resolveManualPath(language: Language): string {
+  const fileName = MANUAL_FILE_BY_LANGUAGE[language]
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'Manuale.mybook.json')
+    return path.join(process.resourcesPath, fileName)
   }
-  return path.join(__dirname, '../../resources/Manuale.mybook.json')
+  return path.join(__dirname, '../../resources', fileName)
 }
 
 /**
@@ -104,8 +113,13 @@ function resolveManualPath(): string {
 function importManualOnFirstLaunchIfNeeded(db: ReturnType<typeof getDb>, projectTransferService: ProjectTransferService): void {
   const settings = db.prepare('SELECT manual_imported FROM app_settings').get() as { manual_imported: number } | undefined
   if (settings?.manual_imported) return
+  // v0.4.0 — prima installazione: l'interfaccia parte nella lingua del sistema (italiano se il sistema è
+  // italiano, altrimenti inglese) e il manuale viene importato in quella stessa lingua. Chi aggiorna da una
+  // versione precedente ha già manual_imported = 1 e non passa mai di qui: la sua lingua resta quella scelta.
+  const language = pickInitialLanguage(app.getLocale())
+  db.prepare('UPDATE app_settings SET language = ?').run(language)
   try {
-    const raw = JSON.parse(fs.readFileSync(resolveManualPath(), 'utf-8'))
+    const raw = JSON.parse(fs.readFileSync(resolveManualPath(language), 'utf-8'))
     projectTransferService.importProject(raw)
   } catch (error) {
     console.error('[main] impossibile importare il manuale al primo avvio:', error)
@@ -125,6 +139,8 @@ function registerAllIpc(): void {
   const objectRepo = new EntityRepository(db, 'objects')
   const timelineRepo = new TimelineRepository(db)
   const settingsRepo = new SettingsRepository(db)
+  // v0.4.0: il main legge la lingua dell'interfaccia dalle impostazioni a ogni uso (menu nativo, dialoghi, messaggi).
+  setLanguageProvider(() => (settingsRepo.get() as { language?: string } | undefined)?.language)
   const activityLogRepo = new ActivityLogRepository(db)
   const sceneTagsRepo = new SceneTagsRepository(db)
 

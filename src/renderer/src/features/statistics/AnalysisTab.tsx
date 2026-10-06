@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { ProjectAnalysis, TextAnalysisResult } from '@shared/ipc/channels'
 import { formatReadingTime, CHARS_PER_EDITORIAL_PAGE, WORDS_PER_PRINT_PAGE, READING_WORDS_PER_MINUTE } from '@shared/textAnalysis'
+import type { TranslationKey, Translator } from '@shared/i18n'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 /**
  * Scheda Statistiche > Analisi (v0.3.5, estesa in v0.3.6): parole/caratteri/
@@ -13,27 +15,42 @@ import { formatReadingTime, CHARS_PER_EDITORIAL_PAGE, WORDS_PER_PRINT_PAGE, READ
 // v0.3.6: le convenzioni editoriali adottate (dichiarate anche in
 // shared/textAnalysis.ts) sono mostrate come tooltip sulle rispettive voci,
 // invece che solo in un commento nel codice che l'utente non può vedere.
-const EDITORIAL_PAGE_TOOLTIP = `1 cartella editoriale = ${CHARS_PER_EDITORIAL_PAGE.toLocaleString('it-IT')} caratteri spazi inclusi (convenzione più diffusa in Italia: 30 righe × 60 battute)`
-const PRINT_PAGE_TOOLTIP = `1 pagina di stampa (stima) ≈ ${WORDS_PER_PRINT_PAGE} parole`
-const READING_TIME_TOOLTIP = `Velocità di lettura assunta: ≈ ${READING_WORDS_PER_MINUTE} parole al minuto`
-
-const METRIC_CARDS: { label: string; get: (a: TextAnalysisResult) => string; tooltip?: string }[] = [
-  { label: 'Parole totali', get: (a) => a.words.toLocaleString('it-IT') },
-  { label: 'Tempo di lettura', get: (a) => formatReadingTime(a.readingMinutes), tooltip: READING_TIME_TOOLTIP },
-  { label: 'Caratteri (spazi inclusi)', get: (a) => a.charsWithSpaces.toLocaleString('it-IT') },
-  { label: 'Caratteri (spazi esclusi)', get: (a) => a.charsWithoutSpaces.toLocaleString('it-IT') },
-  { label: 'Frasi', get: (a) => a.sentences.toLocaleString('it-IT') },
-  { label: 'Paragrafi', get: (a) => a.paragraphs.toLocaleString('it-IT') },
-  { label: 'Cartelle editoriali', get: (a) => a.editorialPages.toLocaleString('it-IT', { maximumFractionDigits: 1 }), tooltip: EDITORIAL_PAGE_TOOLTIP },
-  { label: 'Pagine di stampa (stima)', get: (a) => a.printPages.toLocaleString('it-IT', { maximumFractionDigits: 1 }), tooltip: PRINT_PAGE_TOOLTIP }
-]
+// v0.4.0: etichette e tooltip dipendono dalla lingua, quindi le metriche si costruiscono con `t` e `locale` della UI.
+function metricCards(t: Translator, locale: string): { key: TranslationKey; label: string; value: (a: TextAnalysisResult) => string; tooltip?: string }[] {
+  return [
+    { key: 'statistics.totalWords', label: t('statistics.totalWords'), value: (a) => a.words.toLocaleString(locale) },
+    {
+      key: 'analysis.metric.readingTime',
+      label: t('analysis.metric.readingTime'),
+      value: (a) => formatReadingTime(a.readingMinutes),
+      tooltip: t('analysis.tooltip.reading', { wpm: READING_WORDS_PER_MINUTE })
+    },
+    { key: 'analysis.metric.charsWith', label: t('analysis.metric.charsWith'), value: (a) => a.charsWithSpaces.toLocaleString(locale) },
+    { key: 'analysis.metric.charsWithout', label: t('analysis.metric.charsWithout'), value: (a) => a.charsWithoutSpaces.toLocaleString(locale) },
+    { key: 'analysis.metric.sentences', label: t('analysis.metric.sentences'), value: (a) => a.sentences.toLocaleString(locale) },
+    { key: 'analysis.metric.paragraphs', label: t('analysis.metric.paragraphs'), value: (a) => a.paragraphs.toLocaleString(locale) },
+    {
+      key: 'analysis.metric.editorialPages',
+      label: t('analysis.metric.editorialPages'),
+      value: (a) => a.editorialPages.toLocaleString(locale, { maximumFractionDigits: 1 }),
+      tooltip: t('analysis.tooltip.editorialPage', { chars: CHARS_PER_EDITORIAL_PAGE.toLocaleString(locale) })
+    },
+    {
+      key: 'analysis.metric.printPages',
+      label: t('analysis.metric.printPages'),
+      value: (a) => a.printPages.toLocaleString(locale, { maximumFractionDigits: 1 }),
+      tooltip: t('analysis.tooltip.printPage', { words: WORDS_PER_PRINT_PAGE })
+    }
+  ]
+}
 
 function MetricGrid({ analysis }: { analysis: TextAnalysisResult }): JSX.Element {
+  const { t, locale } = useTranslation()
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {METRIC_CARDS.map((card) => (
-        <div key={card.label} className="rounded border border-gray-200 p-3 dark:border-gray-700" title={card.tooltip}>
-          <div className="text-xl font-semibold">{card.get(analysis)}</div>
+      {metricCards(t, locale).map((card) => (
+        <div key={card.key} className="rounded border border-gray-200 p-3 dark:border-gray-700" title={card.tooltip}>
+          <div className="text-xl font-semibold">{card.value(analysis)}</div>
           <div className="text-xs text-gray-500 dark:text-gray-400">{card.label}</div>
         </div>
       ))}
@@ -59,7 +76,8 @@ function CollapsibleSection({ title, count, children }: { title: string; count: 
 }
 
 function KeywordList({ keywords }: { keywords: TextAnalysisResult['keywords'] }): JSX.Element {
-  if (keywords.length === 0) return <p className="text-sm text-gray-400">Non ci sono ancora abbastanza parole per un'analisi.</p>
+  const { t } = useTranslation()
+  if (keywords.length === 0) return <p className="text-sm text-gray-400">{t('analysis.notEnoughWords')}</p>
   const max = keywords[0]?.count ?? 1
   return (
     <ul className="space-y-1.5">
@@ -76,7 +94,7 @@ function KeywordList({ keywords }: { keywords: TextAnalysisResult['keywords'] })
   )
 }
 
-const ENTITY_TYPE_LABEL: Record<string, string> = { character: 'Personaggio', location: 'Località', object: 'Oggetto' }
+const ENTITY_TYPE_LABEL: Record<string, TranslationKey> = { character: 'entityType.character', location: 'entityType.location', object: 'entityType.object' }
 
 function TagList({
   tags,
@@ -85,22 +103,23 @@ function TagList({
   tags: { entityType: string; entityId: string; count: number }[]
   nameOf: (entityType: string, entityId: string) => string
 }): JSX.Element {
-  if (tags.length === 0) return <p className="text-sm text-gray-400">Nessun tag in questo capitolo.</p>
+  const { t } = useTranslation()
+  if (tags.length === 0) return <p className="text-sm text-gray-400">{t('analysis.noTags')}</p>
   return (
     <table className="w-full text-sm">
       <thead>
         <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
-          <th className="py-1 pr-4 font-medium">Tag</th>
-          <th className="py-1 pr-4 font-medium">Tipo</th>
-          <th className="py-1 font-medium">Occorrenze</th>
+          <th className="py-1 pr-4 font-medium">{t('editor.tagColumnTag')}</th>
+          <th className="py-1 pr-4 font-medium">{t('editor.tagColumnType')}</th>
+          <th className="py-1 font-medium">{t('analysis.occurrences')}</th>
         </tr>
       </thead>
       <tbody>
-        {tags.map((t) => (
-          <tr key={`${t.entityType}:${t.entityId}`} className="border-t border-gray-100 dark:border-gray-800">
-            <td className="py-1 pr-4">{nameOf(t.entityType, t.entityId)}</td>
-            <td className="py-1 pr-4 text-gray-500">{ENTITY_TYPE_LABEL[t.entityType] ?? t.entityType}</td>
-            <td className="py-1">{t.count}</td>
+        {tags.map((tag) => (
+          <tr key={`${tag.entityType}:${tag.entityId}`} className="border-t border-gray-100 dark:border-gray-800">
+            <td className="py-1 pr-4">{nameOf(tag.entityType, tag.entityId)}</td>
+            <td className="py-1 pr-4 text-gray-500">{ENTITY_TYPE_LABEL[tag.entityType] ? t(ENTITY_TYPE_LABEL[tag.entityType]) : tag.entityType}</td>
+            <td className="py-1">{tag.count}</td>
           </tr>
         ))}
       </tbody>
@@ -109,6 +128,7 @@ function TagList({
 }
 
 export default function AnalysisTab({ projectId }: { projectId: string }): JSX.Element {
+  const { t, locale } = useTranslation()
   const [analysis, setAnalysis] = useState<ProjectAnalysis | null>(null)
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null)
   // v0.3.6: i tag salvano solo entityType/entityId — il nome va risolto qui
@@ -139,24 +159,24 @@ export default function AnalysisTab({ projectId }: { projectId: string }): JSX.E
     }
   }, [projectId])
 
-  const nameOf = (entityType: string, entityId: string): string => entityNames[`${entityType}:${entityId}`] ?? '(eliminata)'
+  const nameOf = (entityType: string, entityId: string): string => entityNames[`${entityType}:${entityId}`] ?? t('analysis.deleted')
 
-  if (!analysis) return <div className="text-sm text-gray-400">Analisi in corso…</div>
+  if (!analysis) return <div className="text-sm text-gray-400">{t('analysis.running')}</div>
 
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Intero progetto</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('analysis.wholeProject')}</h2>
         <MetricGrid analysis={analysis.total} />
-        <CollapsibleSection title="Parole chiave più usate" count={analysis.total.keywords.length}>
+        <CollapsibleSection title={t('analysis.keywords')} count={analysis.total.keywords.length}>
           <KeywordList keywords={analysis.total.keywords} />
         </CollapsibleSection>
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Per capitolo</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('statistics.perChapter')}</h2>
         {analysis.chapters.length === 0 ? (
-          <p className="text-sm text-gray-400">Nessun capitolo ancora creato.</p>
+          <p className="text-sm text-gray-400">{t('common.noChapters')}</p>
         ) : (
           <div className="space-y-2">
             {analysis.chapters.map((chapter) => {
@@ -169,16 +189,16 @@ export default function AnalysisTab({ projectId }: { projectId: string }): JSX.E
                   >
                     <span className="font-medium">{chapter.chapterTitle}</span>
                     <span className="text-xs text-gray-500">
-                      {chapter.words.toLocaleString('it-IT')} parole · {formatReadingTime(chapter.readingMinutes)}
+                      {t('projects.words', { count: chapter.words, n: chapter.words.toLocaleString(locale) })} · {formatReadingTime(chapter.readingMinutes)}
                     </span>
                   </button>
                   {expanded && (
                     <div className="border-t border-gray-100 p-3 dark:border-gray-700">
                       <MetricGrid analysis={chapter} />
-                      <CollapsibleSection title="Parole chiave più usate" count={chapter.keywords.length}>
+                      <CollapsibleSection title={t('analysis.keywords')} count={chapter.keywords.length}>
                         <KeywordList keywords={chapter.keywords} />
                       </CollapsibleSection>
-                      <CollapsibleSection title="Tag presenti" count={chapter.tags.length}>
+                      <CollapsibleSection title={t('analysis.tagsPresent')} count={chapter.tags.length}>
                         <TagList tags={chapter.tags} nameOf={nameOf} />
                       </CollapsibleSection>
                     </div>

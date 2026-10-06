@@ -1,0 +1,233 @@
+{
+  "format": "mybook-project",
+  "version": 1,
+  "exportedAt": "2026-09-25T00:00:00.000Z",
+  "application": {
+    "name": "MyBook",
+    "version": "0.4.0"
+  },
+  "project": {
+    "title": "MyBook Manual",
+    "subtitle": "Quick guide",
+    "author": "MyBook",
+    "description": "A demo project imported automatically on first launch, to discover the main features of the app.",
+    "notes": "",
+    "plot": "",
+    "fabula": "",
+    "book_language": "en"
+  },
+  "settings": "{}",
+  "data": {
+    "documentNodes": [
+      {
+        "id": "chapter-1",
+        "node_type": "chapter",
+        "title": "Getting started",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 0,
+        "content": "{}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": null
+      },
+      {
+        "id": "scene-1",
+        "node_type": "scene",
+        "title": "Welcome to MyBook",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "completo",
+        "order_index": 0,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"This is a small demo project, imported automatically the first time MyBook starts.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"You can read it to get an idea of how the app is organised, or delete it at any time from the Projects list: it is not part of your work, it is only an example.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Each section below is a scene, just as the chapters of your novel would be. Try editing one: you will see automatic saving and, in the activity log (Settings > Log), the entry that records it.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-2",
+        "node_type": "scene",
+        "title": "The Manuscript",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "completo",
+        "order_index": 1,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The Manuscript is organised into Chapters and Scenes, which can be grouped into Groups (useful for dividing the novel into parts). In the tree on the left you can drag to reorder or move, and each scene has a status \\u2014 Idea, Draft, Review, Done \\u2014 shown with a coloured dot.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The window title always reflects where you are: when you are writing a scene, it also shows the open chapter and scene.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Every scene automatically keeps its revision history, so you can go back to a previous version of the text at any time.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-3",
+        "node_type": "scene",
+        "title": "Characters, Locations, Objects",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "bozza",
+        "order_index": 2,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"These three sections hold the cards for who and what populates your story. From each card you can see, on the right, in which chapters and scenes that character, place or object has been tagged in the text \\u2014 and clicking takes you straight there, with the cursor on the tagged word.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"To tag a word while you write, select it and use the editor's context menu (right-click): the \\\"Add tag\\u2026\\\" entry will appear.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-4",
+        "node_type": "scene",
+        "title": "Timeline and Mind map",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 3,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The Timeline holds the events of the story, with a free-form Narrative date (\\\"Year 1200\\\", \\\"The third day\\\") and, if you like, a real Date you can pick from a calendar.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The Mind map lets you visually connect characters, places, objects and chapters, to keep an eye on the relationships between them.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-5",
+        "node_type": "scene",
+        "title": "Statistics",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 4,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The Main tab shows words, characters and the progress of completed scenes and chapters.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The Analysis tab goes deeper: sentences, paragraphs, editorial pages, estimated reading time, the most used words and, for each chapter, which tags appear in it and how many times.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-6",
+        "node_type": "scene",
+        "title": "Activity log and Settings",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 5,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"MyBook keeps a log of what you do in a project \\u2014 scenes created, edited, moved, characters added and so on \\u2014 which you can browse in Settings. When you close a project you can leave yourself a \\\"To Do\\\" note for next time, which you will find in a small recap when you reopen it.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"In Settings you can also adjust appearance, text size, interface language (Italian or English), spell checker and much more. Happy writing!\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-7",
+        "node_type": "scene",
+        "title": "Find, shortcuts and languages",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 6,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The Find button in the editor bar (or Ctrl+F, Cmd+F on Mac) opens the Find and replace window: it finds every occurrence, highlights them in the text, counts them, and lets you step through them with Enter. You can limit the search to whole words or match case. Ctrl+H goes straight to the Replace field; \\\"Replace all\\\" can be undone with a single Undo.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The editor's keyboard shortcuts can be customised in Settings > Editor > Toolbar tools: click a combination, press the new one, and if it is already used by another action the app tells you instead of overwriting it.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"The interface language is chosen in Settings > General. The Book language, instead, is a property of each project (Edit project): it says which language the manuscript is written in and drives keyword analysis and export metadata.\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      }
+    ],
+    "characters": [
+      {
+        "id": "char-1",
+        "name": "Aria",
+        "role": "Protagonist (example)",
+        "description": "An example protagonist: feel free to replace her with your own characters.",
+        "avatar_path": null,
+        "notes": "",
+        "custom_fields": "[]",
+        "tags": ""
+      }
+    ],
+    "locations": [
+      {
+        "id": "loc-1",
+        "name": "The Glass Tower",
+        "parent_id": null,
+        "description": "An example location.",
+        "image_path": null,
+        "notes": "",
+        "custom_fields": "[]",
+        "tags": ""
+      }
+    ],
+    "objects": [
+      {
+        "id": "obj-1",
+        "name": "The Copper Compass",
+        "description": "An example object.",
+        "image_path": null,
+        "notes": "",
+        "custom_fields": "[]",
+        "tags": ""
+      }
+    ],
+    "timelines": [
+      {
+        "id": "timeline-1",
+        "name": "Main timeline",
+        "order_index": 0
+      }
+    ],
+    "timelineEvents": [
+      {
+        "id": "event-1",
+        "timeline_id": "timeline-1",
+        "title": "Founding of the Kingdom",
+        "description": "An example event in the Timeline.",
+        "event_date": "Year 1",
+        "calendar_date": "",
+        "order_index": 0,
+        "notes": ""
+      }
+    ],
+    "mindmaps": [
+      {
+        "id": "mindmap-1",
+        "name": "Main map",
+        "order_index": 0
+      }
+    ],
+    "mindmapNodes": [
+      {
+        "id": "mmnode-1",
+        "mindmap_id": "mindmap-1",
+        "node_type": "character",
+        "ref_id": "char-1",
+        "label": "Aria",
+        "description": "",
+        "group_id": null,
+        "pos_x": 100,
+        "pos_y": 100,
+        "color": ""
+      },
+      {
+        "id": "mmnode-2",
+        "mindmap_id": "mindmap-1",
+        "node_type": "location",
+        "ref_id": "loc-1",
+        "label": "The Glass Tower",
+        "description": "",
+        "group_id": null,
+        "pos_x": 350,
+        "pos_y": 100,
+        "color": ""
+      }
+    ],
+    "mindmapEdges": [
+      {
+        "id": "mmedge-1",
+        "mindmap_id": "mindmap-1",
+        "source_node_id": "mmnode-1",
+        "target_node_id": "mmnode-2",
+        "label": "lives near",
+        "style": "solid"
+      }
+    ]
+  }
+}

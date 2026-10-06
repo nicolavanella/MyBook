@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AutosizeTextarea from '@renderer/components/AutosizeTextarea'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 /** Modal per "Aggiungi commento…" (dal menu contestuale) e "Modifica" (dalla sezione Commenti): stessa interfaccia, cambia solo il testo iniziale e il titolo. */
 export default function CommentModal({
@@ -11,6 +12,7 @@ export default function CommentModal({
   onSave: (text: string) => void
   onClose: () => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const [text, setText] = useState(initialText)
 
   useEffect(() => {
@@ -31,13 +33,13 @@ export default function CommentModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-100">
-          {initialText ? 'Modifica commento' : 'Aggiungi commento'}
+          {initialText ? t('editor.editComment') : t('comment.add')}
         </h2>
         <AutosizeTextarea
           autoFocus
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Scrivi il commento…"
+          placeholder={t('comment.placeholder')}
           className="w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           rows={3}
           onKeyDown={(e) => {
@@ -50,7 +52,7 @@ export default function CommentModal({
             onClick={onClose}
             className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
-            Annulla
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -58,7 +60,7 @@ export default function CommentModal({
             disabled={!text.trim()}
             className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            Salva
+            {t('common.save')}
           </button>
         </div>
       </div>

@@ -59,6 +59,7 @@ function EventRow({
   onUpdate: (id: string, fields: Record<string, unknown>) => void
   onDelete: (id: string) => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: event.id, disabled: !draggable })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
   const rowRef = useRef<HTMLLIElement | null>(null)
@@ -88,7 +89,7 @@ function EventRow({
           {...attributes}
           {...listeners}
           className="absolute left-1.5 top-1/2 -translate-y-1/2 cursor-grab text-gray-300 hover:text-gray-500"
-          title="Trascina per riordinare"
+          title={t('common.dragToReorder')}
         >
           <GripVertical size={15} />
         </button>
@@ -96,7 +97,7 @@ function EventRow({
       <button
         onClick={() => onDelete(event.id)}
         className="absolute right-1.5 top-1.5 text-gray-300 opacity-0 hover:text-red-600 group-hover:opacity-100"
-        title="Elimina evento"
+        title={t('timeline.deleteEvent')}
       >
         <Trash2 size={14} />
       </button>
@@ -129,7 +130,7 @@ function EventRow({
             <input
               key={`date-${event.id}`}
               className="w-48 rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-500"
-              placeholder='Data narrativa (es. "Anno 1200")'
+              placeholder={t('timeline.datePlaceholder')}
               defaultValue={event.event_date}
               onBlur={(e) => onUpdate(event.id, { event_date: e.target.value })}
             />
@@ -144,7 +145,7 @@ function EventRow({
             key={`description-${event.id}`}
             className="mt-1 w-full rounded border border-gray-200 px-2 py-1 text-sm"
             rows={2}
-            placeholder="Descrizione"
+            placeholder={t('entities.description')}
             defaultValue={event.description}
             onBlur={(e) => onUpdate(event.id, { description: e.target.value })}
           />
@@ -164,7 +165,7 @@ export default function TimelinePage(): JSX.Element {
   const [compact, setCompact] = useState(false)
   // Criterio di ordinamento della vista compatta (solo visualizzazione, non tocca l'ordine salvato).
   const [sortMode, setSortMode] = useState<TimelineSortMode>('none')
-  const { language } = useTranslation()
+  const { language, t } = useTranslation()
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [highlightEventId, setHighlightEventId] = useState<string | null>(null)
@@ -239,7 +240,7 @@ export default function TimelinePage(): JSX.Element {
   }
 
   const deleteEvent = async (id: string) => {
-    const ok = await confirm({ message: 'Eliminare questo evento?', confirmLabel: 'Elimina', danger: true })
+    const ok = await confirm({ message: t('timeline.confirmDeleteEvent'), confirmLabel: t('common.delete'), danger: true })
     if (!ok) return
     await window.mybook.timelineEvents.delete(id)
     if (activeTimelineId) reloadEvents(activeTimelineId)
@@ -247,7 +248,7 @@ export default function TimelinePage(): JSX.Element {
 
   const addTimeline = async () => {
     if (!activeProjectId) return
-    const created = await window.mybook.timelines.create(activeProjectId, 'Nuova timeline')
+    const created = await window.mybook.timelines.create(activeProjectId, t('timeline.defaultName'))
     setTimelines((prev) => [...prev, created])
     setActiveTimelineId(created.id)
   }
@@ -261,8 +262,8 @@ export default function TimelinePage(): JSX.Element {
   const deleteTimeline = async (id: string) => {
     if (timelines.length <= 1) return // sempre almeno una timeline
     const ok = await confirm({
-      message: 'Eliminare questa timeline e tutti i suoi eventi?',
-      confirmLabel: 'Elimina',
+      message: t('timeline.confirmDeleteTimeline'),
+      confirmLabel: t('common.delete'),
       danger: true
     })
     if (!ok) return
@@ -292,19 +293,19 @@ export default function TimelinePage(): JSX.Element {
   // Come per la ricerca, un elenco riordinato "per vista" non è trascinabile: il riordino manuale avrebbe un esito ambiguo.
   const canDrag = !query && activeSort === 'none'
 
-  if (!activeProjectId) return <div className="p-6 text-sm text-gray-400">Apri un progetto dal Manoscritto.</div>
+  if (!activeProjectId) return <div className="p-6 text-sm text-gray-400">{t('common.openProject')}</div>
 
   return (
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="shrink-0 text-xl font-semibold">Timeline</h1>
+        <h1 className="shrink-0 text-xl font-semibold">{t('nav.timeline')}</h1>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           <div className="flex w-full max-w-xs items-center gap-1.5 rounded border border-gray-300 px-2 py-1">
             <Search size={13} className="shrink-0 text-gray-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cerca per titolo, data o descrizione…"
+              placeholder={t('timeline.searchPlaceholder')}
               spellCheck={false}
               data-search-input
               className="w-full min-w-0 bg-transparent text-sm outline-none"
@@ -312,15 +313,15 @@ export default function TimelinePage(): JSX.Element {
           </div>
           {compact && (
             <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500">
-              Ordina per
+              {t('timeline.sortBy')}
               <select
                 value={sortMode}
                 onChange={(e) => setSortMode(e.target.value as TimelineSortMode)}
                 className="rounded border border-gray-300 px-1.5 py-1 text-xs"
               >
-                <option value="none">Nessuno</option>
-                <option value="narrative">Data narrativa</option>
-                <option value="date">Data</option>
+                <option value="none">{t('timeline.sort.none')}</option>
+                <option value="narrative">{t('timeline.sort.narrative')}</option>
+                <option value="date">{t('timeline.sort.date')}</option>
               </select>
             </label>
           )}
@@ -328,49 +329,49 @@ export default function TimelinePage(): JSX.Element {
             onClick={() => setCompact((v) => !v)}
             className="shrink-0 rounded border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50"
           >
-            Vista {compact ? 'estesa' : 'compatta'}
+            {compact ? t('timeline.viewExpanded') : t('timeline.viewCompact')}
           </button>
         </div>
       </div>
 
       {/* Selettore timeline (tab) */}
       <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-gray-200">
-        {timelines.map((t) => (
-          <div key={t.id} className="group relative">
-            {renamingId === t.id ? (
+        {timelines.map((tl) => (
+          <div key={tl.id} className="group relative">
+            {renamingId === tl.id ? (
               <input
                 autoFocus
-                defaultValue={t.name}
+                defaultValue={tl.name}
                 onFocus={(e) => e.target.select()}
-                onBlur={(e) => renameTimeline(t.id, e.target.value.trim() || t.name)}
+                onBlur={(e) => renameTimeline(tl.id, e.target.value.trim() || tl.name)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                 className="border-b-2 border-blue-500 px-3 py-1.5 text-sm outline-none"
               />
             ) : (
               <button
-                onDoubleClick={() => setRenamingId(t.id)}
-                onClick={() => setActiveTimelineId(t.id)}
+                onDoubleClick={() => setRenamingId(tl.id)}
+                onClick={() => setActiveTimelineId(tl.id)}
                 className={`border-b-2 px-3 py-1.5 text-sm ${
-                  activeTimelineId === t.id
+                  activeTimelineId === tl.id
                     ? 'border-blue-600 font-medium text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {t.name}
+                {tl.name}
               </button>
             )}
-            {timelines.length > 1 && activeTimelineId === t.id && renamingId !== t.id && (
+            {timelines.length > 1 && activeTimelineId === tl.id && renamingId !== tl.id && (
               <button
-                onClick={() => deleteTimeline(t.id)}
+                onClick={() => deleteTimeline(tl.id)}
                 className="absolute -right-1 -top-1 hidden rounded-full bg-white text-gray-300 hover:text-red-600 group-hover:block"
-                title="Elimina timeline"
+                title={t('timeline.deleteTimeline')}
               >
                 ×
               </button>
             )}
           </div>
         ))}
-        <button onClick={addTimeline} className="px-2 py-1.5 text-gray-400 hover:text-gray-700" title="Nuova timeline">
+        <button onClick={addTimeline} className="px-2 py-1.5 text-gray-400 hover:text-gray-700" title={t('timeline.defaultName')}>
           <Plus size={16} />
         </button>
       </div>
@@ -378,13 +379,13 @@ export default function TimelinePage(): JSX.Element {
       <div className="mb-6 flex gap-2">
         <input
           className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
-          placeholder="Nuovo evento"
+          placeholder={t('timeline.newEvent')}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addEvent()}
         />
         <button onClick={addEvent} className="shrink-0 rounded bg-blue-600 px-3 text-sm text-white">
-          Aggiungi
+          {t('common.add')}
         </button>
       </div>
 
@@ -394,7 +395,7 @@ export default function TimelinePage(): JSX.Element {
         // calcolato) produrrebbe un ordine manuale ambiguo. Si comporta come
         // la ricerca dell'albero del Manoscritto.
         <ul className="space-y-2">
-          {sortedEvents.length === 0 && <p className="px-1 text-xs text-gray-400">Nessun risultato.</p>}
+          {sortedEvents.length === 0 && <p className="px-1 text-xs text-gray-400">{t('entities.noResults')}</p>}
           {sortedEvents.map((ev) => (
             <EventRow key={ev.id} event={ev} compact={compact} draggable={false} highlighted={highlightEventId === ev.id} language={language} onUpdate={updateEvent} onDelete={deleteEvent} />
           ))}

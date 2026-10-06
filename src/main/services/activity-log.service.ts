@@ -3,6 +3,7 @@ import { isSameLocalDay } from '@shared/calendarDate'
 import type { ActivityLogRepository } from '../database/repositories/activity-log.repository'
 import type { SettingsRepository } from '../database/repositories/settings.repository'
 import type { ActivityLogEntry, ProjectActivityRecap } from '@shared/ipc/channels'
+import { tm } from '../i18n'
 
 const RECAP_PROJECT_LIMIT = 5
 const RECAP_ENTRIES_PER_PROJECT = 8
@@ -120,7 +121,7 @@ export class ActivityLogService {
       .recentProjectIds(RECAP_PROJECT_LIMIT)
       .map((projectId) => ({
         projectId,
-        projectTitle: projectTitleOf(projectId) ?? '(progetto eliminato)',
+        projectTitle: projectTitleOf(projectId) ?? tm('log.projectDeleted'),
         todo: this.repo.getTodo(projectId),
         entries: this.repo.recentForProject(projectId, RECAP_ENTRIES_PER_PROJECT)
       }))

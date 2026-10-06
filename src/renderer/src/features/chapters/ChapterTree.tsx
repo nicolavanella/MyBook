@@ -20,6 +20,7 @@ import { extractSnippet } from './textSnippet'
 import { getRootItems, getChaptersOfGroup, getScenesOfChapter } from '@shared/manuscriptTree'
 import { STATUS_DOT } from '@renderer/lib/nodeStatus'
 import { titleIfTruncated } from '@renderer/lib/truncationTitle'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 interface ChapterFormValues {
   title: string
@@ -175,6 +176,7 @@ function ChapterBlock({
   onCancelRename: () => void
   onSceneReorder: (reorderedIds: string[]) => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: chapter.id,
     data: { containerId },
@@ -224,7 +226,7 @@ function ChapterBlock({
             onDoubleClick={onChapterContextMenu}
             onContextMenu={onChapterContextMenu}
           >
-            {!!chapter.locked && <Lock size={11} className="shrink-0 text-gray-400" aria-label="Capitolo bloccato" />}
+            {!!chapter.locked && <Lock size={11} className="shrink-0 text-gray-400" aria-label={t('chapters.locked')} />}
             {chapter.title}
             {chapter.subtitle && <span className="ml-1 font-normal text-gray-400">— {chapter.subtitle}</span>}
           </div>
@@ -258,7 +260,7 @@ function ChapterBlock({
           </DndContext>
           <li>
             <button onClick={onAddScene} className="px-2 text-xs text-gray-500 hover:text-gray-800">
-              + Aggiungi scena
+              {t('chapters.addScene')}
             </button>
           </li>
         </ul>
@@ -301,6 +303,7 @@ function GroupBlock({
   onMenuButton: (e: React.MouseEvent) => void
   children: React.ReactNode
 }): JSX.Element {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: group.id,
     data: { containerId: ROOT_CONTAINER }
@@ -333,7 +336,7 @@ function GroupBlock({
           />
         ) : (
           <div className="flex min-w-0 flex-1 cursor-text items-center gap-1 truncate py-1 text-sm font-semibold" onDoubleClick={onContextMenu} onContextMenu={onContextMenu}>
-            {!!group.locked && <Lock size={11} className="shrink-0 text-gray-400" aria-label="Gruppo bloccato" />}
+            {!!group.locked && <Lock size={11} className="shrink-0 text-gray-400" aria-label={t('chapters.groupLocked')} />}
             {group.title}
           </div>
         )}
@@ -344,7 +347,7 @@ function GroupBlock({
 
       {!collapsed && (
         <ul ref={setDropRef} className={`ml-3 mt-1 min-h-[1.75rem] min-w-0 space-y-2 rounded ${isOver ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}>
-          {chapters.length === 0 && <li className="px-2 py-1 text-xs italic text-gray-400">Trascina qui un capitolo</li>}
+          {chapters.length === 0 && <li className="px-2 py-1 text-xs italic text-gray-400">{t('chapters.dropHere')}</li>}
           {children}
         </ul>
       )}
@@ -355,6 +358,7 @@ function GroupBlock({
 export default function ChapterTree({ projectId }: { projectId: string }): JSX.Element {
   const { tree, loadTree, setActiveNode, activeNodeId } = useProjectStore()
   const confirm = useConfirm()
+  const { t } = useTranslation()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [contextMenu, setContextMenu] = useState<{ id: string; type: 'chapter' | 'scene' | 'group'; x: number; y: number } | null>(null)
@@ -400,7 +404,7 @@ export default function ChapterTree({ projectId }: { projectId: string }): JSX.E
   }
 
   const createGroup = async () => {
-    await window.mybook.documents.create({ projectId, parentId: null, nodeType: 'group', title: 'Nuovo gruppo' })
+    await window.mybook.documents.create({ projectId, parentId: null, nodeType: 'group', title: t('chapters.newGroup') })
     await loadTree()
   }
 
@@ -417,7 +421,7 @@ export default function ChapterTree({ projectId }: { projectId: string }): JSX.E
   }
 
   const addScene = async (chapterId: string) => {
-    await window.mybook.documents.create({ projectId, parentId: chapterId, nodeType: 'scene', title: 'Nuova scena' })
+    await window.mybook.documents.create({ projectId, parentId: chapterId, nodeType: 'scene', title: t('chapters.defaultSceneName') })
     loadTree()
   }
 
@@ -452,11 +456,11 @@ export default function ChapterTree({ projectId }: { projectId: string }): JSX.E
     const scenesCount = isChapter ? scenesOf(node.id).length : 0
     const chaptersCount = isGroup ? chaptersOfGroup(node.id).length : 0
     const message = isGroup
-      ? `Eliminare il gruppo "${node.title}" e i suoi ${chaptersCount} capitoli (con tutte le loro scene)? L'operazione non è reversibile.`
+      ? t('chapters.confirmDeleteGroup', { title: node.title, count: chaptersCount })
       : isChapter
-        ? `Eliminare "${node.title}" e le sue ${scenesCount} scene? L'operazione non è reversibile.`
-        : `Eliminare la scena "${node.title}"? L'operazione non è reversibile.`
-    const ok = await confirm({ message, confirmLabel: 'Elimina', danger: true })
+        ? t('chapters.confirmDeleteChapter', { title: node.title, count: scenesCount })
+        : t('chapters.confirmDeleteScene', { title: node.title })
+    const ok = await confirm({ message, confirmLabel: t('common.delete'), danger: true })
     if (!ok) return
     await window.mybook.documents.delete(node.id)
     if (activeNodeId === node.id) setActiveNode(null)
@@ -516,18 +520,18 @@ export default function ChapterTree({ projectId }: { projectId: string }): JSX.E
     <div className="flex h-full flex-col overflow-x-hidden">
       <div className="mb-3 grid shrink-0 grid-cols-2 gap-1.5">
         <button onClick={() => setShowNewChapterModal(true)} className="rounded bg-gray-100 px-2 py-1 text-sm hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">
-          + Nuovo capitolo
+          {t('chapters.newChapterButton')}
         </button>
         <button onClick={() => void createGroup()} className="flex items-center justify-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">
-          <FolderPlus size={14} /> Nuovo gruppo
+          <FolderPlus size={14} /> {t('chapters.newGroup')}
         </button>
       </div>
       <div className="mb-2 flex shrink-0 justify-end gap-3 text-xs text-gray-500 dark:text-gray-400">
         <button onClick={expandAll} className="flex items-center gap-1 hover:text-gray-800 dark:hover:text-gray-200">
-          <ChevronsUpDown size={12} /> Espandi tutto
+          <ChevronsUpDown size={12} /> {t('chapters.expandAll')}
         </button>
         <button onClick={collapseAll} className="flex items-center gap-1 hover:text-gray-800 dark:hover:text-gray-200">
-          <ChevronsDownUp size={12} /> Comprimi tutto
+          <ChevronsDownUp size={12} /> {t('chapters.collapseAll')}
         </button>
       </div>
 
@@ -650,7 +654,7 @@ export default function ChapterTree({ projectId }: { projectId: string }): JSX.E
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cerca per titolo o testo…"
+            placeholder={t('chapters.searchPlaceholder')}
             spellCheck={false}
             data-search-input
             className="w-full min-w-0 bg-transparent text-xs outline-none"
@@ -669,35 +673,35 @@ export default function ChapterTree({ projectId }: { projectId: string }): JSX.E
             const items: MenuItem[] = []
             // v0.3.9: "Rinomina" tolto per i Capitoli — "Modifica" (poco sotto) apre già la scheda completa, titolo incluso, quindi era un'azione ridondante lì. Resta per Gruppi e Scene, che non hanno un "Modifica" equivalente.
             if (contextMenu.type !== 'chapter') {
-              items.push({ label: 'Rinomina', onClick: () => { startEditing(node.id, node.title); setContextMenu(null) } })
+              items.push({ label: t('chapters.menu.rename'), onClick: () => { startEditing(node.id, node.title); setContextMenu(null) } })
             }
             if (contextMenu.type === 'chapter') {
-              items.push({ label: 'Modifica', onClick: () => { setEditingChapter(node); setContextMenu(null) } })
+              items.push({ label: t('common.edit'), onClick: () => { setEditingChapter(node); setContextMenu(null) } })
             }
             // v0.3.9: "Crea copia" anche per i Gruppi — duplicate() è già ricorsivo (copia capitoli e scene contenuti), serviva solo esporlo qui.
             if (contextMenu.type === 'chapter' || contextMenu.type === 'scene' || contextMenu.type === 'group') {
-              items.push({ label: 'Crea copia', onClick: () => { void duplicateNode(node); setContextMenu(null) } })
+              items.push({ label: t('chapters.menu.duplicate'), onClick: () => { void duplicateNode(node); setContextMenu(null) } })
             }
             if (contextMenu.type === 'chapter' || contextMenu.type === 'group') {
               items.push({
-                label: node.locked ? 'Sblocca' : 'Blocca',
+                label: node.locked ? t('chapters.menu.unlock') : t('chapters.menu.lock'),
                 onClick: () => { void toggleLock(node); setContextMenu(null) }
               })
             }
-            items.push({ label: 'Elimina', danger: true, onClick: () => { void deleteNode(node); setContextMenu(null) } })
+            items.push({ label: t('common.delete'), danger: true, onClick: () => { void deleteNode(node); setContextMenu(null) } })
             return items
           })()}
         />
       )}
 
       {showNewChapterModal && (
-        <ChapterFormModal title="Nuovo capitolo" submitLabel="Crea" onClose={() => setShowNewChapterModal(false)} onSubmit={createChapter} />
+        <ChapterFormModal title={t('chapters.newChapterTitle')} submitLabel={t('common.create')} onClose={() => setShowNewChapterModal(false)} onSubmit={createChapter} />
       )}
 
       {editingChapter && (
         <ChapterFormModal
-          title="Modifica capitolo"
-          submitLabel="Salva"
+          title={t('chapters.editChapterTitle')}
+          submitLabel={t('common.save')}
           initialValues={{
             title: editingChapter.title,
             subtitle: editingChapter.subtitle,
@@ -723,7 +727,8 @@ function SearchResultsList({
   query: string
   onSelect: (id: string) => void
 }): JSX.Element {
-  if (results.length === 0) return <p className="px-1 text-xs text-gray-400">Nessun risultato.</p>
+  const { t } = useTranslation()
+  if (results.length === 0) return <p className="px-1 text-xs text-gray-400">{t('chapters.noResults')}</p>
   return (
     <ul className="space-y-2">
       {results.map((n) => {
@@ -734,7 +739,7 @@ function SearchResultsList({
           <li key={n.id}>
             <button onClick={() => onSelect(n.id)} className="block w-full min-w-0 rounded px-2 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700">
               <span className="block truncate text-sm">
-                {isChapter && <span className="mr-1 text-xs text-gray-400">[capitolo]</span>}
+                {isChapter && <span className="mr-1 text-xs text-gray-400">{t('chapters.chapterTag')}</span>}
                 {n.title}
                 {chapter && <span className="ml-1 text-xs text-gray-400">— {chapter.title}</span>}
               </span>
@@ -760,6 +765,7 @@ function ChapterFormModal({
   onClose: () => void
   onSubmit: (values: ChapterFormValues) => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const [values, setValues] = useState<ChapterFormValues>(initialValues ?? EMPTY_CHAPTER_FORM)
   const set = (patch: Partial<ChapterFormValues>) => setValues((v) => ({ ...v, ...patch }))
 
@@ -775,24 +781,24 @@ function ChapterFormModal({
         <h2 className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
         <div className="space-y-3">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Titolo *</span>
+            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">{t('chapters.form.title')}</span>
             <input autoFocus required className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600" value={values.title} onChange={(e) => set({ title: e.target.value })} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Sottotitolo (opzionale)</span>
+            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">{t('chapters.form.subtitle')}</span>
             <input className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600" value={values.subtitle} onChange={(e) => set({ subtitle: e.target.value })} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Descrizione</span>
+            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">{t('chapters.form.description')}</span>
             <AutosizeTextarea rows={2} className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600" value={values.description} onChange={(e) => set({ description: e.target.value })} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Note</span>
+            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">{t('chapters.form.notes')}</span>
             <AutosizeTextarea rows={2} className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600" value={values.notes} onChange={(e) => set({ notes: e.target.value })} />
           </label>
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">Annulla</button>
+          <button type="button" onClick={onClose} className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">{t('common.cancel')}</button>
           <button type="submit" className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white">{submitLabel}</button>
         </div>
       </form>

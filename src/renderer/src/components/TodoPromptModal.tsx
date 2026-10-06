@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 /**
  * Prompt "cosa fare la prossima volta" mostrato alla chiusura di un
@@ -21,6 +22,7 @@ export default function TodoPromptModal({
   onSubmit: (text: string) => void
   onSkip: () => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const [text, setText] = useState(initialValue)
 
   return (
@@ -32,14 +34,14 @@ export default function TodoPromptModal({
         }}
         className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl dark:bg-gray-800"
       >
-        <h2 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">Prima di chiudere «{projectTitle}»</h2>
-        <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Cosa fare la prossima volta? (facoltativo)</p>
+        <h2 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{t('todo.title', { title: projectTitle })}</h2>
+        <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{t('todo.question')}</p>
         <textarea
           autoFocus
           rows={4}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Es. Rivedere il dialogo del capitolo 4, sistemare la timeline…"
+          placeholder={t('todo.placeholder')}
           className="mb-4 w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
         />
         <div className="flex justify-end gap-2">
@@ -48,10 +50,10 @@ export default function TodoPromptModal({
             onClick={onSkip}
             className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
           >
-            Salta
+            {t('todo.skip')}
           </button>
           <button type="submit" className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-            Salva e chiudi
+            {t('todo.saveAndClose')}
           </button>
         </div>
       </form>

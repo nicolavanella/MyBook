@@ -1,11 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import { NODE_STATUS_OPTIONS, STATUS_DOT } from '@renderer/lib/nodeStatus'
 import { NodeStatus } from '@shared/schemas/document.schema'
+import { translate } from '@shared/i18n'
 
 describe('nodeStatus (fonte unica per albero e selettore Stato)', () => {
   it('copre esattamente gli stati validi dello schema, nell\'ordine Idea/Bozza/Revisione/Finito', () => {
     expect(NODE_STATUS_OPTIONS.map((o) => o.value)).toEqual(NodeStatus.options)
-    expect(NODE_STATUS_OPTIONS.map((o) => o.label)).toEqual(['Idea', 'Bozza', 'Revisione', 'Finito'])
+    expect(NODE_STATUS_OPTIONS.map((o) => translate('it', o.labelKey))).toEqual(['Idea', 'Bozza', 'Revisione', 'Finito'])
+  })
+  it('le etichette degli stati sono tradotte in inglese', () => {
+    expect(NODE_STATUS_OPTIONS.map((o) => translate('en', o.labelKey))).toEqual(['Idea', 'Draft', 'Review', 'Done'])
   })
   it('ogni stato ha un colore distinto e STATUS_DOT è coerente', () => {
     const classes = NODE_STATUS_OPTIONS.map((o) => o.dotClass)

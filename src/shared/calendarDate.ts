@@ -14,7 +14,7 @@
  * al processo main (validazione Zod) sia al renderer (formattazione, ricerca).
  */
 
-/** Lingue supportate dall'interfaccia (vedi i18n/translations.ts). */
+/** Lingue supportate dall'interfaccia (vedi shared/i18n/index.ts: stesso insieme di `Language`). */
 export type CalendarLanguage = 'it' | 'en'
 
 const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/

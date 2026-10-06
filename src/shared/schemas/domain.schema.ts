@@ -71,7 +71,7 @@ export const TimelineEventUpdateInput = z.object({
     description: z.string().optional(),
     event_date: z.string().optional(),
     // v0.3.4: data da calendario, ISO "AAAA-MM-GG" esistente oppure "" (non impostata).
-    calendar_date: z.string().refine((v) => v === '' || isValidIsoDate(v), 'Data non valida').optional(),
+    calendar_date: z.string().refine((v) => v === '' || isValidIsoDate(v), 'Invalid date').optional(),
     order_index: z.number().int().min(0).optional(),
     notes: z.string().optional(),
     color: z.string().optional()

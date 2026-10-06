@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { CalendarDays, X } from 'lucide-react'
 import { formatCalendarDate, type CalendarLanguage } from '@shared/calendarDate'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 /**
  * Campo "Data" selezionabile da calendario (v0.3.4), mostrata come
@@ -19,13 +20,14 @@ export default function CalendarDateField({
   value,
   onChange,
   language = 'it',
-  placeholder = 'Data'
+  placeholder
 }: {
   value: string
   onChange: (iso: string) => void
   language?: CalendarLanguage
   placeholder?: string
 }): JSX.Element {
+  const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const label = formatCalendarDate(value, language)
 
@@ -45,17 +47,17 @@ export default function CalendarDateField({
       <button
         type="button"
         onClick={openPicker}
-        title="Scegli la data dal calendario"
+        title={t('calendar.pick')}
         className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-gray-50 dark:hover:bg-gray-700"
       >
         <CalendarDays size={12} className="shrink-0" />
-        <span className={label ? '' : 'text-gray-400'}>{label || placeholder}</span>
+        <span className={label ? '' : 'text-gray-400'}>{label || placeholder || t('calendar.placeholder')}</span>
       </button>
       {value && (
         <button
           type="button"
           onClick={() => onChange('')}
-          title="Rimuovi la data"
+          title={t('calendar.remove')}
           className="px-1 text-gray-300 hover:text-red-600"
         >
           <X size={12} />

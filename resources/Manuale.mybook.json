@@ -4,7 +4,7 @@
   "exportedAt": "2026-09-25T00:00:00.000Z",
   "application": {
     "name": "MyBook",
-    "version": "0.3.8"
+    "version": "0.4.0"
   },
   "project": {
     "title": "Manuale di MyBook",
@@ -13,7 +13,8 @@
     "description": "Progetto dimostrativo importato automaticamente al primo avvio, per scoprire le funzionalità principali dell'app.",
     "notes": "",
     "plot": "",
-    "fabula": ""
+    "fabula": "",
+    "book_language": "it"
   },
   "settings": "{}",
   "data": {
@@ -111,7 +112,21 @@
         "notes": "",
         "status": "idea",
         "order_index": 5,
-        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"MyBook tiene un registro (Log) di ci\\u00f2 che fai in un progetto \\u2014 scene create, modificate, spostate, personaggi aggiunti e cos\\u00ec via \\u2014 consultabile in Impostazioni. Alla chiusura di un progetto puoi lasciarti una nota \\\"To Do\\\" per la volta successiva, che ritroverai in un piccolo riepilogo quando lo riapri.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"In Impostazioni puoi anche regolare aspetto, dimensione del testo, lingua, correttore ortografico e molto altro. Buona scrittura!\"}]}]}",
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"MyBook tiene un registro (Log) di ci\\u00f2 che fai in un progetto \\u2014 scene create, modificate, spostate, personaggi aggiunti e cos\\u00ec via \\u2014 consultabile in Impostazioni. Alla chiusura di un progetto puoi lasciarti una nota \\\"To Do\\\" per la volta successiva, che ritroverai in un piccolo riepilogo quando lo riapri.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"In Impostazioni puoi anche regolare aspetto, dimensione del testo, lingua dell'interfaccia (italiano o inglese), correttore ortografico e molto altro. Buona scrittura!\"}]}]}",
+        "word_count": 0,
+        "char_count": 0,
+        "parent_id": "chapter-1"
+      },
+      {
+        "id": "scene-7",
+        "node_type": "scene",
+        "title": "Cerca, scorciatoie e lingue",
+        "subtitle": "",
+        "description": "",
+        "notes": "",
+        "status": "idea",
+        "order_index": 6,
+        "content": "{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Il pulsante Cerca della barra dell'editor (o Ctrl+F, Cmd+F su Mac) apre la finestra Cerca e sostituisci: trova tutte le occorrenze evidenziandole nel testo, le conta, e ti permette di scorrerle con Invio. Puoi limitare la ricerca alle parole intere o distinguere maiuscole e minuscole. Ctrl+H porta direttamente al campo Sostituisci; \\\"Sostituisci tutti\\\" si annulla con un solo Annulla.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Le scorciatoie da tastiera dell'editor si personalizzano in Impostazioni > Editor > Strumenti toolbar: clicca una combinazione, premi quella nuova, e se \\u00e8 gi\\u00e0 usata da un'altra azione l'app te lo dice invece di sovrascriverla.\"}]}, {\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"La lingua dell'interfaccia si sceglie in Impostazioni > Generale. La Lingua del libro, invece, \\u00e8 una propriet\\u00e0 di ogni progetto (Modifica progetto): indica in che lingua \\u00e8 scritto il manoscritto e guida l'analisi delle parole chiave e i metadati dell'export.\"}]}]}",
         "word_count": 0,
         "char_count": 0,
         "parent_id": "chapter-1"

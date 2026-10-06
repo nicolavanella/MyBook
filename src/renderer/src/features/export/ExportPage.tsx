@@ -4,33 +4,37 @@ import type { ExportFormat } from '@shared/ipc/channels'
 import { toggleSelectionCascade } from './selection'
 import { getRootItems, getChaptersOfGroup, getScenesOfChapter } from '@shared/manuscriptTree'
 import { Folder } from 'lucide-react'
+import type { TranslationKey } from '@shared/i18n'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
-const FORMATS: { value: ExportFormat; label: string; hint: string }[] = [
-  { value: 'pdf', label: 'PDF', hint: 'Pronto per la stampa o la lettura' },
-  { value: 'epub', label: 'EPUB', hint: 'Per e-reader (Kindle richiede conversione)' },
-  { value: 'docx', label: 'Word (.docx)', hint: 'Per continuare a lavorarci in Word' },
-  { value: 'txt', label: 'Testo semplice (.txt)', hint: 'Senza formattazione' },
-  { value: 'md', label: 'Markdown (.md)', hint: 'Grassetto/corsivo come **testo**' },
-  { value: 'html', label: 'HTML', hint: 'Pagina web singola' }
+// v0.4.0: testi come chiavi i18n. Le etichette che sono nomi di formato (PDF, EPUB…) restano letterali e `labelKey` è assente.
+const FORMATS: { value: ExportFormat; label?: string; labelKey?: TranslationKey; hintKey: TranslationKey }[] = [
+  { value: 'pdf', label: 'PDF', hintKey: 'export.format.pdf.hint' },
+  { value: 'epub', label: 'EPUB', hintKey: 'export.format.epub.hint' },
+  { value: 'docx', label: 'Word (.docx)', hintKey: 'export.format.docx.hint' },
+  { value: 'txt', labelKey: 'export.format.txt.label', hintKey: 'export.format.txt.hint' },
+  { value: 'md', label: 'Markdown (.md)', hintKey: 'export.format.md.hint' },
+  { value: 'html', label: 'HTML', hintKey: 'export.format.html.hint' }
 ]
 
-const SEPARATORS: { value: 'title' | 'stars' | 'none'; label: string }[] = [
-  { value: 'title', label: 'Nome scena' },
+const SEPARATORS: { value: 'title' | 'stars' | 'none'; label?: string; labelKey?: TranslationKey }[] = [
+  { value: 'title', labelKey: 'export.sep.sceneName' },
   { value: 'stars', label: '***' },
-  { value: 'none', label: 'Niente' }
+  { value: 'none', labelKey: 'export.sep.none' }
 ]
 
-const PART_SEPARATORS: { value: 'title' | 'none'; label: string }[] = [
-  { value: 'title', label: 'Nome Parte' },
-  { value: 'none', label: 'Niente' }
+const PART_SEPARATORS: { value: 'title' | 'none'; labelKey: TranslationKey }[] = [
+  { value: 'title', labelKey: 'export.sep.partName' },
+  { value: 'none', labelKey: 'export.sep.none' }
 ]
 
-const CHAPTER_SEPARATORS: { value: 'title' | 'none'; label: string }[] = [
-  { value: 'title', label: 'Nome Capitolo' },
-  { value: 'none', label: 'Niente' }
+const CHAPTER_SEPARATORS: { value: 'title' | 'none'; labelKey: TranslationKey }[] = [
+  { value: 'title', labelKey: 'export.sep.chapterName' },
+  { value: 'none', labelKey: 'export.sep.none' }
 ]
 
 export default function ExportPage(): JSX.Element {
+  const { t } = useTranslation()
   const { activeProjectId, tree, loadTree } = useProjectStore()
   const [format, setFormat] = useState<ExportFormat>('pdf')
   const [partSeparator, setPartSeparator] = useState<'title' | 'none'>('title')
@@ -74,7 +78,7 @@ export default function ExportPage(): JSX.Element {
   }, [activeProjectId])
 
   if (!activeProjectId) {
-    return <div className="p-6 text-sm text-gray-400">Apri un progetto dal Manoscritto.</div>
+    return <div className="p-6 text-sm text-gray-400">{t('common.openProject')}</div>
   }
 
   const rootItems = getRootItems(tree)
@@ -120,14 +124,14 @@ export default function ExportPage(): JSX.Element {
 
   return (
     <div className="flex h-full flex-col p-6">
-      <h1 className="mb-1 shrink-0 text-xl font-semibold">Esporta</h1>
+      <h1 className="mb-1 shrink-0 text-xl font-semibold">{t('nav.export')}</h1>
       <p className="mb-6 shrink-0 text-sm text-gray-500">
-        Esporta il manoscritto (o solo i capitoli/scene selezionati) nel formato scelto.
+        {t('export.description')}
       </p>
 
       <div ref={gridRef} className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="overflow-auto pr-1">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Formato</h2>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('export.formatHeading')}</h2>
           <div className="mb-6 grid grid-cols-2 gap-2">
             {FORMATS.map((f) => (
               <button
@@ -137,17 +141,17 @@ export default function ExportPage(): JSX.Element {
                   format === f.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                <div className="font-medium">{f.label}</div>
-                <div className="text-xs text-gray-500">{f.hint}</div>
+                <div className="font-medium">{f.labelKey ? t(f.labelKey) : f.label}</div>
+                <div className="text-xs text-gray-500">{t(f.hintKey)}</div>
               </button>
             ))}
           </div>
 
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Separatore tra le parti
+            {t('export.partSeparator')}
           </h2>
           <p className="mb-2 text-xs text-gray-400">
-            Ogni parte (Gruppo di Capitoli) inizia sempre da una nuova pagina; qui scegli se mostrarne anche il nome.
+            {t('export.partSeparatorHint')}
           </p>
           <div className="mb-6 flex gap-2">
             {PART_SEPARATORS.map((s) => (
@@ -158,13 +162,13 @@ export default function ExportPage(): JSX.Element {
                   partSeparator === s.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {s.label}
+                {t(s.labelKey)}
               </button>
             ))}
           </div>
 
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Separatore tra i capitoli
+            {t('export.chapterSeparator')}
           </h2>
           <div className="mb-6 flex gap-2">
             {CHAPTER_SEPARATORS.map((s) => (
@@ -175,13 +179,13 @@ export default function ExportPage(): JSX.Element {
                   chapterSeparator === s.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {s.label}
+                {t(s.labelKey)}
               </button>
             ))}
           </div>
 
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Separatore tra le scene
+            {t('export.sceneSeparator')}
           </h2>
           <div className="mb-6 flex gap-2">
             {SEPARATORS.map((s) => (
@@ -192,7 +196,7 @@ export default function ExportPage(): JSX.Element {
                   separator === s.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {s.label}
+                {s.labelKey ? t(s.labelKey) : s.label}
               </button>
             ))}
           </div>
@@ -203,44 +207,44 @@ export default function ExportPage(): JSX.Element {
             disabled={status === 'exporting'}
             className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:bg-gray-300"
           >
-            {status === 'exporting' ? 'Esportazione…' : `Esporta come ${format.toUpperCase()}`}
+            {status === 'exporting' ? t('export.exporting') : t('export.exportAs', { format: format.toUpperCase() })}
           </button>
 
           {status === 'done' && (
             <div className="mt-3 rounded border border-green-200 bg-green-50 p-3 text-sm">
-              <p className="mb-2 text-green-700">Esportato con successo{lastPath ? ` in ${lastPath}` : ''}.</p>
+              <p className="mb-2 text-green-700">{lastPath ? t('export.doneIn', { path: lastPath }) : t('export.done')}</p>
               {lastPath && (
                 <div className="flex gap-2">
                   <button
                     onClick={() => window.mybook.export.openFile(lastPath)}
                     className="rounded border border-green-300 bg-white px-3 py-1 text-xs text-green-800 hover:bg-green-100"
                   >
-                    Apri file
+                    {t('export.openFile')}
                   </button>
                   <button
                     onClick={() => window.mybook.export.showInFolder(lastPath)}
                     className="rounded border border-green-300 bg-white px-3 py-1 text-xs text-green-800 hover:bg-green-100"
                   >
-                    Mostra nella cartella
+                    {t('common.showInFolder')}
                   </button>
                 </div>
               )}
             </div>
           )}
-          {status === 'error' && <p className="mt-3 text-sm text-red-600">Esportazione fallita. Riprova.</p>}
+          {status === 'error' && <p className="mt-3 text-sm text-red-600">{t('export.failed')}</p>}
         </div>
 
         <div className="flex min-h-0 flex-col" style={{ maxHeight: rightColumnMaxHeight }}>
           <div className="mb-2 flex shrink-0 items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Capitoli e scene da includere
+              {t('export.include')}
             </h2>
             <div className="flex shrink-0 gap-3">
               <button onClick={() => setSelectedIds(null)} className="text-xs text-blue-600 hover:underline">
-                Seleziona tutto
+                {t('export.selectAll')}
               </button>
               <button onClick={() => setSelectedIds(new Set())} className="text-xs text-blue-600 hover:underline">
-                Deseleziona tutto
+                {t('export.deselectAll')}
               </button>
             </div>
           </div>
@@ -250,7 +254,7 @@ export default function ExportPage(): JSX.Element {
               manoscritto ha molti capitoli/gruppi. */}
           <div className="min-h-0 flex-1 overflow-auto rounded border border-gray-200 p-3">
             {rootItems.length === 0 ? (
-              <p className="text-sm text-gray-400">Nessun capitolo ancora creato.</p>
+              <p className="text-sm text-gray-400">{t('common.noChapters')}</p>
             ) : (
               rootItems.map((item) =>
                 item.node_type === 'group' ? (

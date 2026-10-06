@@ -31,6 +31,7 @@ import { useProjectStore } from '@renderer/stores/useProjectStore'
 import { useConfirm, usePrompt } from '@renderer/components/ConfirmDialog'
 import AddMindmapNodeModal, { type MindmapNodeType } from './AddMindmapNodeModal'
 import EditMindmapNodeModal, { type EditableNode } from './EditMindmapNodeModal'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 interface MindmapMeta {
   id: string
@@ -88,6 +89,7 @@ export default function MindmapPage(): JSX.Element {
   const { activeProjectId } = useProjectStore()
   const confirm = useConfirm()
   const prompt = usePrompt()
+  const { t } = useTranslation()
   const [mindmaps, setMindmaps] = useState<MindmapMeta[]>([])
   const [activeMindmapId, setActiveMindmapId] = useState<string | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -212,7 +214,7 @@ export default function MindmapPage(): JSX.Element {
 
   const handleAddGroup = async () => {
     if (!activeProjectId || !activeMindmapId) return
-    const name = await prompt({ message: 'Nome del gruppo (colonna kanban):', defaultValue: 'Nuovo gruppo' })
+    const name = await prompt({ message: t('mindmap.groupNamePrompt'), defaultValue: t('chapters.newGroup') })
     if (!name) return
     const node = await window.mybook.mindmap.createNode({
       projectId: activeProjectId,
@@ -243,7 +245,7 @@ export default function MindmapPage(): JSX.Element {
 
   const handleDeleteNodeFromModal = async () => {
     if (!editingNode) return
-    const ok = await confirm({ message: 'Eliminare questo nodo?', confirmLabel: 'Elimina', danger: true })
+    const ok = await confirm({ message: t('mindmap.confirmDeleteNode'), confirmLabel: t('common.delete'), danger: true })
     if (!ok) return
     await window.mybook.mindmap.deleteNode(editingNode.id)
     setEditingNode(null)
@@ -252,7 +254,7 @@ export default function MindmapPage(): JSX.Element {
 
   const addMindmap = async () => {
     if (!activeProjectId) return
-    const created = await window.mybook.mindmaps.create(activeProjectId, 'Nuova mappa')
+    const created = await window.mybook.mindmaps.create(activeProjectId, t('mindmap.defaultName'))
     setMindmaps((prev) => [...prev, created])
     setActiveMindmapId(created.id)
   }
@@ -267,8 +269,8 @@ export default function MindmapPage(): JSX.Element {
   const deleteMindmap = async (id: string) => {
     if (mindmaps.length <= 1) return
     const ok = await confirm({
-      message: 'Eliminare questa mappa concettuale e tutti i suoi nodi/collegamenti?',
-      confirmLabel: 'Elimina',
+      message: t('mindmap.confirmDeleteMap'),
+      confirmLabel: t('common.delete'),
       danger: true
     })
     if (!ok) return
@@ -278,7 +280,7 @@ export default function MindmapPage(): JSX.Element {
     setActiveMindmapId(remaining[0]?.id ?? null)
   }
 
-  if (!activeProjectId) return <div className="p-6 text-sm text-gray-400">Apri un progetto dal Manoscritto.</div>
+  if (!activeProjectId) return <div className="p-6 text-sm text-gray-400">{t('common.openProject')}</div>
 
   const groupNodes = rawNodes.filter((n) => n.node_type === 'group').sort((a, b) => a.pos_x - b.pos_x)
   const groupOptions = groupNodes.map((g) => ({ id: g.id, label: g.label }))
@@ -304,8 +306,8 @@ export default function MindmapPage(): JSX.Element {
 
   const deleteGroup = async (id: string) => {
     const ok = await confirm({
-      message: 'Eliminare questo gruppo/colonna? I nodi al suo interno non verranno eliminati, torneranno "Senza gruppo".',
-      confirmLabel: 'Elimina',
+      message: t('mindmap.confirmDeleteGroup', { ungrouped: t('entities.ungrouped') }),
+      confirmLabel: t('common.delete'),
       danger: true
     })
     if (!ok) return
@@ -401,14 +403,14 @@ export default function MindmapPage(): JSX.Element {
                 <button
                   onClick={() => deleteMindmap(m.id)}
                   className="absolute -right-1 -top-1 hidden rounded-full bg-white text-gray-300 hover:text-red-600 group-hover:block"
-                  title="Elimina mappa"
+                  title={t('mindmap.deleteMap')}
                 >
                   ×
                 </button>
               )}
             </div>
           ))}
-          <button onClick={addMindmap} className="px-2 py-1.5 text-gray-400 hover:text-gray-700" title="Nuova mappa">
+          <button onClick={addMindmap} className="px-2 py-1.5 text-gray-400 hover:text-gray-700" title={t('mindmap.defaultName')}>
             <Plus size={16} />
           </button>
         </div>
@@ -419,19 +421,19 @@ export default function MindmapPage(): JSX.Element {
             className="flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
           >
             {view === 'graph' ? <LayoutGrid size={14} /> : <Network size={14} />}
-            Vista {view === 'graph' ? 'kanban' : 'grafo'}
+            {view === 'graph' ? t('mindmap.viewKanban') : t('mindmap.viewGraph')}
           </button>
           <button
             onClick={handleAddGroup}
             className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
           >
-            + Gruppo
+            {t('mindmap.addGroup')}
           </button>
           <button
             onClick={() => setModalOpen(true)}
             className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white shadow"
           >
-            + Aggiungi nodo
+            {t('mindmap.addNode')}
           </button>
         </div>
       </div>
@@ -440,7 +442,7 @@ export default function MindmapPage(): JSX.Element {
         {view === 'graph' ? (
           <>
             <div className="absolute left-4 top-4 z-10 rounded bg-white/90 px-3 py-2 text-xs text-gray-500 shadow">
-              Trascina per collegare · doppio click per modificare · Canc per eliminare
+              {t('mindmap.hint')}
             </div>
             <ReactFlow
               nodes={nodes}
@@ -480,7 +482,7 @@ export default function MindmapPage(): JSX.Element {
               </SortableContext>
               {/* Colonna "Senza gruppo": sempre in fondo, non trascinabile, non rinominabile/eliminabile */}
               <KanbanColumn
-                group={{ id: '__ungrouped__', label: 'Senza gruppo' } as RawNode}
+                group={{ id: '__ungrouped__', label: t('entities.ungrouped') } as RawNode}
                 nodes={rawNodes.filter((n) => !n.group_id && n.node_type !== 'group')}
                 draggable={false}
                 collapsed={collapsedColumns.has('__ungrouped__')}
@@ -576,6 +578,7 @@ function KanbanColumn({
   onDelete?: () => void
   onCardClick: (n: RawNode) => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const sortable = useSortable({ id: group.id, disabled: !draggable })
   const style = draggable
     ? { transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition, opacity: sortable.isDragging ? 0.5 : 1 }
@@ -592,7 +595,7 @@ function KanbanColumn({
         style={style}
         className="flex w-10 shrink-0 flex-col items-center gap-2 rounded bg-gray-50 py-2"
       >
-        <button onClick={onToggleCollapse} className="text-gray-400 hover:text-gray-700" title="Espandi colonna">
+        <button onClick={onToggleCollapse} className="text-gray-400 hover:text-gray-700" title={t('mindmap.expandColumn')}>
           <ChevronRight size={14} />
         </button>
         <span className="rotate-180 text-xs font-medium text-gray-600 [writing-mode:vertical-rl]">
@@ -610,7 +613,7 @@ function KanbanColumn({
             <GripVertical size={14} />
           </button>
         )}
-        <button onClick={onToggleCollapse} className="text-gray-400 hover:text-gray-700" title="Comprimi colonna">
+        <button onClick={onToggleCollapse} className="text-gray-400 hover:text-gray-700" title={t('mindmap.collapseColumn')}>
           <ChevronDown size={13} />
         </button>
         {isRenaming ? (
@@ -628,13 +631,13 @@ function KanbanColumn({
           </span>
         )}
         {onDelete && (
-          <button onClick={onDelete} className="text-gray-300 opacity-0 hover:text-red-600 group-hover/col:opacity-100" title="Elimina gruppo">
+          <button onClick={onDelete} className="text-gray-300 opacity-0 hover:text-red-600 group-hover/col:opacity-100" title={t('entities.deleteGroup')}>
             <Trash2 size={13} />
           </button>
         )}
       </div>
       <div ref={setDropRef} className={`flex-1 space-y-2 overflow-auto rounded ${isOver ? 'bg-blue-50' : ''}`}>
-        {nodes.length === 0 && <p className="px-1 py-2 text-center text-xs italic text-gray-300">Trascina qui un nodo</p>}
+        {nodes.length === 0 && <p className="px-1 py-2 text-center text-xs italic text-gray-300">{t('mindmap.dropHere')}</p>}
         {nodes.map((n) => (
           <KanbanCard key={n.id} node={n} onClick={() => onCardClick(n)} />
         ))}

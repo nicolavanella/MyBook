@@ -1,0 +1,14 @@
+-- MyBook — 024_book_language.sql (v0.4.0)
+-- "Lingua del libro": la lingua in cui è scritto il manoscritto di un progetto.
+-- È distinta dalla lingua dell'interfaccia (app_settings.language): chi scrive
+-- in inglese con l'app in italiano (o viceversa) deve ottenere comunque
+-- un'analisi delle parole chiave con le stopword giuste e un export con i
+-- metadati corretti (EPUB dc:language, titoli fissi come "Indice"/"Contents").
+--
+-- Valori ammessi: 'it' | 'en' (validati con Zod all'ingresso, non con un
+-- CHECK SQL: aggiungere una lingua in futuro non richiederà di ricreare la tabella).
+--
+-- DEFAULT 'it': fino alla 0.3.9 l'app assumeva implicitamente testi italiani
+-- (stopword italiane, EPUB con lingua "it"), quindi i progetti esistenti
+-- mantengono ESATTAMENTE il comportamento precedente, senza alcuna modifica ai dati.
+ALTER TABLE projects ADD COLUMN book_language TEXT NOT NULL DEFAULT 'it';

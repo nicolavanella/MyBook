@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import fs from 'node:fs'
+import { tm } from '../i18n'
 
 const PRESERVED_TABLES = new Set(['schema_migrations', 'app_settings'])
 
@@ -26,20 +27,20 @@ export function clearDatabase(db: Database.Database): void {
 }
 
 export function validateBackup(filePath: string): void {
-  if (!fs.existsSync(filePath)) throw new Error('File di backup non trovato.')
+  if (!fs.existsSync(filePath)) throw new Error(tm('maintenance.backupNotFound'))
   const stat = fs.statSync(filePath)
-  if (!stat.isFile()) throw new Error('Il percorso selezionato non è un file.')
+  if (!stat.isFile()) throw new Error(tm('maintenance.notAFile'))
   const testDb = new Database(filePath, { readonly: true })
   try {
     const integrity = testDb.pragma('integrity_check', { simple: true }) as string
-    if (integrity !== 'ok') throw new Error('Il database di backup non supera il controllo di integrità.')
+    if (integrity !== 'ok') throw new Error(tm('maintenance.integrityFailed'))
     const schema = testDb.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'").get()
-    if (!schema) throw new Error('Il file selezionato non è un database MyBook valido.')
+    if (!schema) throw new Error(tm('maintenance.notMyBookDb'))
   } finally { testDb.close() }
 }
 
 export function replaceDatabaseFile(currentPath: string, backupPath: string): void {
-  if (fs.realpathSync(currentPath) === fs.realpathSync(backupPath)) throw new Error('Il backup selezionato coincide con il database attivo.')
+  if (fs.realpathSync(currentPath) === fs.realpathSync(backupPath)) throw new Error(tm('maintenance.sameAsActive'))
   validateBackup(backupPath)
   for (const suffix of ['', '-wal', '-shm']) {
     const target = currentPath + suffix

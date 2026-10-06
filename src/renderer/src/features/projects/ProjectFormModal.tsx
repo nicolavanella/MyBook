@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import AutosizeTextarea from '@renderer/components/AutosizeTextarea'
+import { LANGUAGES, type BookLanguage } from '@shared/i18n'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 export interface ProjectFormValues {
   title: string
@@ -10,6 +12,8 @@ export interface ProjectFormValues {
   notes: string
   plot: string
   fabula: string
+  /** v0.4.0: lingua in cui è scritto il libro (stopword dell'analisi, metadati dell'export). */
+  bookLanguage: BookLanguage
 }
 
 const EMPTY_VALUES: ProjectFormValues = {
@@ -20,7 +24,8 @@ const EMPTY_VALUES: ProjectFormValues = {
   description: '',
   notes: '',
   plot: '',
-  fabula: ''
+  fabula: '',
+  bookLanguage: 'it'
 }
 
 interface Props {
@@ -38,7 +43,9 @@ export default function ProjectFormModal({
   onClose,
   onSubmit
 }: Props): JSX.Element {
-  const [values, setValues] = useState<ProjectFormValues>({ ...EMPTY_VALUES, ...initialValues })
+  const { t, language } = useTranslation()
+  // v0.4.0: per un NUOVO progetto la lingua del libro parte dalla lingua dell'interfaccia (di norma è quella in cui si scrive); initialValues, se c'è (modifica), vince.
+  const [values, setValues] = useState<ProjectFormValues>({ ...EMPTY_VALUES, bookLanguage: language, ...initialValues })
   const [tab, setTab] = useState<'base' | 'struttura' | 'narrazione'>('base')
 
   const set = (patch: Partial<ProjectFormValues>) => setValues((v) => ({ ...v, ...patch }))
@@ -63,9 +70,9 @@ export default function ProjectFormModal({
         <div className="flex border-b border-gray-100 px-5">
           {(
             [
-              ['base', 'Dati base'],
-              ['struttura', 'Struttura'],
-              ['narrazione', 'Narrazione']
+              ['base', t('projectForm.tab.base')],
+              ['struttura', t('projectForm.tab.structure')],
+              ['narrazione', t('projectForm.tab.narrative')]
             ] as const
           ).map(([key, label]) => (
             <button
@@ -94,7 +101,7 @@ export default function ProjectFormModal({
         <div className="h-96 overflow-auto px-5 py-4">
           {tab === 'base' && (
             <div className="space-y-3">
-              <Field label="Titolo *">
+              <Field label={t('projectForm.title')}>
                 <input
                   autoFocus
                   required
@@ -103,7 +110,7 @@ export default function ProjectFormModal({
                   onChange={(e) => set({ title: e.target.value })}
                 />
               </Field>
-              <Field label="Sottotitolo (opzionale)">
+              <Field label={t('projectForm.subtitle')}>
                 <input
                   className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
                   value={values.subtitle}
@@ -111,14 +118,14 @@ export default function ProjectFormModal({
                 />
               </Field>
               <div className="flex gap-3">
-                <Field label="Autore" className="flex-1">
+                <Field label={t('projectForm.author')} className="flex-1">
                   <input
                     className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
                     value={values.author}
                     onChange={(e) => set({ author: e.target.value })}
                   />
                 </Field>
-                <Field label="Anno (opzionale)" className="w-28">
+                <Field label={t('projectForm.year')} className="w-28">
                   <input
                     type="number"
                     className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
@@ -127,12 +134,27 @@ export default function ProjectFormModal({
                   />
                 </Field>
               </div>
+              {/* v0.4.0: lingua del libro — vedi migrazione 024. Distinta dalla lingua dell'interfaccia (Impostazioni > Generale). */}
+              <Field label={t('projectForm.bookLanguage')}>
+                <select
+                  className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-sm"
+                  value={values.bookLanguage}
+                  onChange={(e) => set({ bookLanguage: e.target.value as BookLanguage })}
+                >
+                  {LANGUAGES.map((code) => (
+                    <option key={code} value={code}>
+                      {t(code === 'en' ? 'language.en' : 'language.it')}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-xs text-gray-400">{t('projectForm.bookLanguageHint')}</span>
+              </Field>
             </div>
           )}
 
           {tab === 'struttura' && (
             <div className="space-y-3">
-              <Field label="Descrizione">
+              <Field label={t('projectForm.description')}>
                 <AutosizeTextarea
                   rows={4}
                   className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
@@ -140,7 +162,7 @@ export default function ProjectFormModal({
                   onChange={(e) => set({ description: e.target.value })}
                 />
               </Field>
-              <Field label="Note">
+              <Field label={t('projectForm.notes')}>
                 <AutosizeTextarea
                   rows={4}
                   className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
@@ -153,7 +175,7 @@ export default function ProjectFormModal({
 
           {tab === 'narrazione' && (
             <div className="space-y-3">
-              <Field label="Trama">
+              <Field label={t('projectForm.plot')}>
                 <AutosizeTextarea
                   rows={4}
                   className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
@@ -161,7 +183,7 @@ export default function ProjectFormModal({
                   onChange={(e) => set({ plot: e.target.value })}
                 />
               </Field>
-              <Field label="Fabula">
+              <Field label={t('projectForm.fabula')}>
                 <AutosizeTextarea
                   rows={4}
                   className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
@@ -179,7 +201,7 @@ export default function ProjectFormModal({
             onClick={onClose}
             className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
           >
-            Annulla
+            {t('common.cancel')}
           </button>
           <button
             type="submit"

@@ -1,4 +1,5 @@
 import { useState, useCallback, createContext, useContext, useRef } from 'react'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 interface ConfirmOptions {
   message: string
@@ -26,6 +27,7 @@ const PromptContext = createContext<PromptFn | null>(null)
  * completamente il problema restando dentro il normale ciclo di eventi.
  */
 export function ConfirmProvider({ children }: { children: React.ReactNode }): JSX.Element {
+  const { t } = useTranslation()
   const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null)
   const confirmResolveRef = useRef<(value: boolean) => void>()
 
@@ -71,7 +73,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }): JS
                   onClick={() => handleConfirm(false)}
                   className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
                 >
-                  Annulla
+                  {t('common.cancel')}
                 </button>
                 <button
                   autoFocus
@@ -80,7 +82,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }): JS
                     confirmOptions.danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >
-                  {confirmOptions.confirmLabel ?? 'Conferma'}
+                  {confirmOptions.confirmLabel ?? t('common.confirm')}
                 </button>
               </div>
             </div>
@@ -109,7 +111,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }): JS
                   onClick={() => handlePrompt(null)}
                   className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
                 >
-                  Annulla
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -128,12 +130,12 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }): JS
 
 export function useConfirm(): ConfirmFn {
   const ctx = useContext(ConfirmContext)
-  if (!ctx) throw new Error('useConfirm deve essere usato dentro <ConfirmProvider>')
+  if (!ctx) throw new Error('useConfirm must be used inside <ConfirmProvider>') // errore di programmazione, non un messaggio per l'utente
   return ctx
 }
 
 export function usePrompt(): PromptFn {
   const ctx = useContext(PromptContext)
-  if (!ctx) throw new Error('usePrompt deve essere usato dentro <ConfirmProvider>')
+  if (!ctx) throw new Error('usePrompt must be used inside <ConfirmProvider>') // errore di programmazione, non un messaggio per l'utente
   return ctx
 }

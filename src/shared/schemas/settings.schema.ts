@@ -9,7 +9,7 @@ export type BackupFrequency = z.infer<typeof BackupFrequency>
 export const AppSettingsSchema = z.object({
   id: z.literal('singleton'),
   theme: z.enum(['light', 'dark']),
-  language: z.string(),
+  language: z.enum(['it', 'en']),
   backup_enabled: z.number().int(), // SQLite non ha booleani nativi: 0/1
   backup_folder: z.string(),
   backup_frequency: BackupFrequency,
@@ -23,6 +23,8 @@ export const AppSettingsSchema = z.object({
   editor_text_light: z.string(),
   editor_bg_dark: z.string(),
   editor_text_dark: z.string(),
+  // v0.4.0: solo le scorciatoie PERSONALIZZATE ({azione: combinazione}); i default sono in shared/shortcuts.ts.
+  editor_shortcuts: z.record(z.string(), z.string()),
   sidebar_visible_tools: z.array(z.enum(['characters','locations','objects','timeline','mindmap','statistics'])),
   dictionary_file: z.string(),
   dictionary_languages: z.array(z.string()),
@@ -38,7 +40,7 @@ export type AppSettings = z.infer<typeof AppSettingsSchema>
 export const UpdateAppSettingsInput = z
   .object({
     theme: z.enum(['light', 'dark']).optional(),
-    language: z.string().optional(),
+    language: z.enum(['it', 'en']).optional(),
     backup_enabled: z.boolean().optional(),
     backup_folder: z.string().optional(),
     backup_frequency: BackupFrequency.optional(),
@@ -51,6 +53,7 @@ export const UpdateAppSettingsInput = z
     editor_text_light: z.string().optional(),
     editor_bg_dark: z.string().optional(),
     editor_text_dark: z.string().optional(),
+    editor_shortcuts: z.record(z.string(), z.string()).optional(),
     sidebar_visible_tools: z.array(z.enum(['characters','locations','objects','timeline','mindmap','statistics'])).optional(),
     dictionary_file: z.string().optional(),
     dictionary_languages: z.array(z.string()).optional(),

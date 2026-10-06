@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Search, ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { titleIfTruncated } from '@renderer/lib/truncationTitle'
 import { filterEntities, groupEntities, UNGROUPED_KEY, type GroupableItem } from './entityGrouping'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 export interface EntityListItem extends GroupableItem {
   color?: string
@@ -42,12 +43,13 @@ export default function EntityListSidebar<T extends EntityListItem>({
   /** Elimina un gruppo: gli elementi al suo interno passano a "Senza gruppo" (non vengono eliminati). */
   onDeleteGroup: (name: string) => void
 }): JSX.Element {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [renamingGroup, setRenamingGroup] = useState<string | null>(null)
 
   const filtered = useMemo(() => filterEntities(items, query, searchText), [items, query, searchText])
-  const groups = useMemo(() => groupEntities(filtered), [filtered])
+  const groups = useMemo(() => groupEntities(filtered, t('entities.ungrouped')), [filtered, t])
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups((prev) => {
@@ -74,7 +76,7 @@ export default function EntityListSidebar<T extends EntityListItem>({
       </div>
 
       <div className="min-w-0 flex-1 space-y-3 overflow-auto">
-        {groups.length === 0 && <p className="px-1 text-xs text-gray-400">Nessun risultato.</p>}
+        {groups.length === 0 && <p className="px-1 text-xs text-gray-400">{t('entities.noResults')}</p>}
         {groups.map((group) => {
           const isRealGroup = group.key !== UNGROUPED_KEY
           return (
@@ -106,10 +108,10 @@ export default function EntityListSidebar<T extends EntityListItem>({
                     </button>
                     {isRealGroup && (
                       <span className="flex shrink-0 gap-0.5 opacity-0 group-hover/hdr:opacity-100">
-                        <button onClick={() => setRenamingGroup(group.key)} title="Rinomina gruppo" className="text-gray-300 hover:text-gray-600">
+                        <button onClick={() => setRenamingGroup(group.key)} title={t('entities.renameGroup')} className="text-gray-300 hover:text-gray-600">
                           <Pencil size={11} />
                         </button>
-                        <button onClick={() => onDeleteGroup(group.label)} title="Elimina gruppo" className="text-gray-300 hover:text-red-600">
+                        <button onClick={() => onDeleteGroup(group.label)} title={t('entities.deleteGroup')} className="text-gray-300 hover:text-red-600">
                           <Trash2 size={11} />
                         </button>
                       </span>
@@ -150,7 +152,7 @@ export default function EntityListSidebar<T extends EntityListItem>({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cerca…"
+            placeholder={t('entities.search')}
             spellCheck={false}
             data-search-input
             className="w-full min-w-0 bg-transparent text-xs outline-none"

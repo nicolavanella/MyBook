@@ -111,7 +111,7 @@ export class DocumentRepository {
     const keys = Object.keys(patch).sort()
     if (keys.length === 0) return
     const invalid = keys.filter((key) => !DOCUMENT_UPDATE_COLUMNS.has(key))
-    if (invalid.length) throw new Error(`Campi documento non consentiti: ${invalid.join(', ')}`)
+    if (invalid.length) throw new Error(`Document fields not allowed: ${invalid.join(', ')}`)
     this.getUpdateStmt(keys).run({ ...patch, id })
   }
 
@@ -213,6 +213,12 @@ export class DocumentRepository {
       )
       .all(projectId)
     return rows as any
+  }
+
+  /** v0.4.0: lingua del libro del progetto (stopword dell'analisi). Valore non riconosciuto → 'it', come prima della 0.4.0. */
+  bookLanguage(projectId: string): 'it' | 'en' {
+    const row = this.db.prepare('SELECT book_language FROM projects WHERE id = ?').get(projectId) as { book_language?: string } | undefined
+    return row?.book_language === 'en' ? 'en' : 'it'
   }
 
   /**

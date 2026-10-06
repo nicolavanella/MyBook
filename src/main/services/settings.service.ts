@@ -3,6 +3,8 @@ import path from 'node:path'
 import type Database from 'better-sqlite3'
 import type { SettingsRepository } from '../database/repositories/settings.repository'
 import type { UpdateAppSettingsInput } from '@shared/schemas/settings.schema'
+import { sanitizeShortcutOverrides } from '@shared/shortcuts'
+import { tm } from '../i18n'
 
 /** Minuti corrispondenti a ciascuna frequenza di backup automatico "a intervallo" (vedi migrazione 008). */
 const FREQUENCY_MINUTES: Record<string, number> = { '30min': 30, '60min': 60, '120min': 120, '240min': 240 }
@@ -27,7 +29,10 @@ export class SettingsService {
     try { toolbarTools = JSON.parse(row.editor_toolbar_tools || '[]') } catch { toolbarTools = [] }
     try { sidebarTools = JSON.parse(row.sidebar_visible_tools || '[]') } catch { sidebarTools = ['characters','locations','objects','timeline','mindmap'] }
     try { dictionaryLanguages = JSON.parse(row.dictionary_languages || '[]') } catch { dictionaryLanguages = [] }
-    return { ...row, editor_toolbar_tools: toolbarTools, sidebar_visible_tools: sidebarTools, dictionary_languages: dictionaryLanguages }
+    // v0.4.0: scorciatoie personalizzate. Un JSON corrotto o con voci obsolete non deve mai rompere l'editor: si ripulisce in lettura.
+    let shortcuts: unknown = {}
+    try { shortcuts = sanitizeShortcutOverrides(JSON.parse(row.editor_shortcuts || '{}')) } catch { shortcuts = {} }
+    return { ...row, editor_toolbar_tools: toolbarTools, sidebar_visible_tools: sidebarTools, dictionary_languages: dictionaryLanguages, editor_shortcuts: shortcuts }
   }
 
   update(input: UpdateAppSettingsInput) {
@@ -59,6 +64,10 @@ export class SettingsService {
     if (input.dictionary_languages) {
       patch.dictionary_languages = JSON.stringify(input.dictionary_languages)
     }
+    if (input.editor_shortcuts) {
+      // Si salva già ripulito: id sconosciuti e combinazioni non valide non entrano mai nel database.
+      patch.editor_shortcuts = JSON.stringify(sanitizeShortcutOverrides(input.editor_shortcuts))
+    }
     this.repo.update(patch)
     return this.get()
   }
@@ -74,10 +83,10 @@ export class SettingsService {
   backupNow(): { ok: true; path: string } | { ok: false; reason: string } {
     const settings = this.repo.get() as any
     if (!settings?.backup_folder) {
-      return { ok: false, reason: 'Nessuna cartella di backup configurata.' }
+      return { ok: false, reason: tm('backup.noFolder') }
     }
     if (!fs.existsSync(settings.backup_folder)) {
-      return { ok: false, reason: 'La cartella di backup configurata non esiste.' }
+      return { ok: false, reason: tm('backup.folderMissing') }
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')

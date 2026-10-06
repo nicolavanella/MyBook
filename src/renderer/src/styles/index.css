@@ -121,3 +121,9 @@ html, body, #root {
 .dark .text-blue-700 { color: #bfdbfe; }
 .dark .text-blue-800 { color: #dbeafe; }
 .dark select option { background-color: #232326; color: #f4f4f5; }
+
+/* v0.4.0 — Cerca e sostituisci: evidenziazione di tutte le occorrenze nel testo, con un tono più forte per quella corrente. */
+.mybook-search-match { background-color: rgba(250, 204, 21, 0.45); border-radius: 2px; }
+.mybook-search-match--current { background-color: rgba(249, 115, 22, 0.55); box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.8); }
+.dark .mybook-search-match { background-color: rgba(250, 204, 21, 0.35); }
+.dark .mybook-search-match--current { background-color: rgba(249, 115, 22, 0.55); }

@@ -27,10 +27,10 @@ export function registerAppIpc(): void {
     try {
       parsed = new URL(url)
     } catch {
-      return { ok: false, reason: 'URL non valido' }
+      return { ok: false, reason: 'Invalid URL' }
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && parsed.protocol !== 'mailto:') {
-      return { ok: false, reason: 'Protocollo non consentito' }
+      return { ok: false, reason: 'Protocol not allowed' }
     }
     shell.openExternal(url)
     return { ok: true }

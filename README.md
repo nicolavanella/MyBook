@@ -16,8 +16,16 @@ account, no cloud, no network required.
   status (Idea / Draft / Revision / Done, shown as coloured dots), locking,
   and "duplicate" for scenes, chapters and whole groups.
 - Rich-text editor (TipTap): headings, fonts, colours, lists, alignment, line
-  height, quotations, images, links, find, page separators, and a **Dialogues**
+  height, quotations, images, links, page separators, and a **Dialogues**
   tool (« », “ ” and – with the cursor placed for you).
+- **Find and replace** (Ctrl/Cmd+F, Ctrl/Cmd+H): highlights every match in the
+  scene, counts them, steps through them, supports *whole words* and *match
+  case*, and "Replace all" is a single undo step. Works across formatting
+  changes (a word split by bold/italic is still found) and keeps tags and
+  comments on replaced text.
+- **Customisable keyboard shortcuts** for every editor action, in Settings >
+  Editor > Toolbar tools. Conflicts and unusable combinations are rejected with
+  an explanation; each one can be restored to its default.
 - **Comments** and **tags** (characters, locations, objects, events) anchored
   to the text, with a native context menu to add, show or delete them.
 - Automatic saving, per-scene **revision history** and diff, and the editor
@@ -53,7 +61,16 @@ account, no cloud, no network required.
 - Export to TXT, Markdown, HTML, DOCX, PDF and EPUB.
 - Export/import a whole project as a single `.mybook.json` file, duplicate a
   project, and schedule automatic database backups.
-- A demonstration project ("Manuale di MyBook") is imported on first launch.
+- A demonstration project ("Manuale di MyBook" / "MyBook Manual") is imported on
+  first launch, in the language of your system.
+
+**Languages**
+- The whole interface — including the native editor context menu and file
+  dialogs — is available in **Italian and English**, switchable at any time
+  from Settings > General without restarting.
+- Each project has a **Book language** (Italian/English), separate from the
+  interface language: it drives the keyword analysis (stopwords) and the export
+  metadata (EPUB language, Word document language, "Contents"/"Indice").
 
 ## Tech stack
 

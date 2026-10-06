@@ -106,7 +106,7 @@ export function getConfig(): AppConfig {
     cached = fromYaml(raw)
   } catch (err) {
     console.warn(
-      `[config] impossibile leggere ${configPath}, uso i valori di default. Motivo:`,
+      `[config] cannot read ${configPath}, using default values. Reason:`,
       (err as Error).message
     )
     cached = DEFAULTS

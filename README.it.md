@@ -4,6 +4,11 @@ Applicazione desktop offline-first per scrittura narrativa: editor, albero
 capitoli/scene, personaggi, località, timeline, mappa concettuale,
 statistiche, versioning ed export.
 
+Dalla 0.4.0: **Cerca e sostituisci** nell'editor (Ctrl/Cmd+F, Ctrl/Cmd+H),
+**scorciatoie da tastiera configurabili** (Impostazioni > Editor > Strumenti
+toolbar), interfaccia in **italiano e inglese** e **Lingua del libro** per ogni
+progetto (analisi delle parole chiave ed export). Dettagli in `CHANGELOG.md`.
+
 ## Stack
 
 Electron · electron-vite · React + TypeScript · TipTap · Zustand · dnd-kit ·

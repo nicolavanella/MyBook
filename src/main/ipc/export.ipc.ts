@@ -77,7 +77,7 @@ export function registerExportIpc(service: ExportService): void {
         }
 
         default:
-          throw new Error(`Formato di export non supportato: ${format}`)
+          throw new Error(`Unsupported export format: ${format}`)
       }
     }
   )

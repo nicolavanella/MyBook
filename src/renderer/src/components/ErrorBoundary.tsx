@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { tNow } from '@renderer/i18n/useTranslation'
 
 interface Props {
   children: ReactNode
@@ -15,6 +16,7 @@ interface State {
  * schermata iniziale" senza nessun messaggio — difficile da diagnosticare.
  * Con questo componente, l'errore viene mostrato chiaramente e l'utente può
  * tornare all'app senza riavviarla.
+ * v0.4.0: è un componente a classe (niente hook), quindi usa `tNow` — la traduzione "istantanea" dello store.
  */
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null }
@@ -31,13 +33,13 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="text-sm font-medium text-gray-800">Si è verificato un errore imprevisto.</p>
+          <p className="text-sm font-medium text-gray-800">{tNow('errorBoundary.title')}</p>
           <p className="max-w-md text-xs text-gray-500">{this.state.error.message}</p>
           <button
             onClick={() => this.setState({ error: null })}
             className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white"
           >
-            Riprova
+            {tNow('errorBoundary.retry')}
           </button>
         </div>
       )

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { MapPin, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useProjectStore } from '@renderer/stores/useProjectStore'
 import { canShowTagPanel } from '@renderer/lib/responsivePanel'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 import type { EntityTagUsage } from '@shared/ipc/channels'
 
 /**
@@ -34,6 +35,7 @@ export default function EntityTagUsagePanel({
 }): JSX.Element | null {
   const { activeProjectId, setActiveNode, setPendingTagJump } = useProjectStore()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [usages, setUsages] = useState<EntityTagUsage[] | null>(null)
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth)
   const [collapsed, setCollapsed] = useState(false)
@@ -69,7 +71,7 @@ export default function EntityTagUsagePanel({
       <div className="flex w-8 shrink-0 items-start justify-center border-l border-gray-200 pt-3 dark:border-gray-700">
         <button
           onClick={() => setCollapsed(false)}
-          title="Espandi il pannello «Dove compare»"
+          title={t('usage.expand')}
           className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700"
         >
           <PanelRightOpen size={16} />
@@ -82,20 +84,20 @@ export default function EntityTagUsagePanel({
     <div className="w-64 shrink-0 border-l border-gray-200 p-3 dark:border-gray-700">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          <MapPin size={13} /> Dove compare
+          <MapPin size={13} /> {t('usage.title')}
         </h3>
         <button
           onClick={() => setCollapsed(true)}
-          title="Collassa il pannello"
+          title={t('usage.collapse')}
           className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700"
         >
           <PanelRightClose size={15} />
         </button>
       </div>
       {usages === null ? (
-        <p className="text-xs text-gray-400">Ricerca in corso…</p>
+        <p className="text-xs text-gray-400">{t('usage.searching')}</p>
       ) : usages.length === 0 ? (
-        <p className="text-xs text-gray-400">Nessun tag ancora inserito nel Manoscritto per questa scheda.</p>
+        <p className="text-xs text-gray-400">{t('usage.empty')}</p>
       ) : (
         <ul className="space-y-2">
           {usages.map((usage) => (
@@ -103,7 +105,7 @@ export default function EntityTagUsagePanel({
               <button
                 onClick={() => goTo(usage)}
                 className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
-                title={`Vai a "${usage.sceneTitle}"`}
+                title={t('usage.goTo', { title: usage.sceneTitle })}
               >
                 <div className="truncate text-gray-500 dark:text-gray-400">{usage.chapterTitle}</div>
                 <div className="truncate font-medium text-gray-800 dark:text-gray-200">{usage.sceneTitle}</div>

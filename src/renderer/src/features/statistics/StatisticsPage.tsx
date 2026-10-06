@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react'
 import { useProjectStore } from '@renderer/stores/useProjectStore'
 import type { ProjectStatistics } from '@shared/ipc/channels'
 import AnalysisTab from './AnalysisTab'
+import type { TranslationKey } from '@shared/i18n'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
-const STATUS_LABELS: Record<string, string> = {
-  idea: 'Idea',
-  bozza: 'Bozza',
-  revisione: 'Revisione',
-  completo: 'Finito'
+const STATUS_LABEL_KEYS: Record<string, TranslationKey> = {
+  idea: 'status.idea',
+  bozza: 'status.bozza',
+  revisione: 'status.revisione',
+  completo: 'status.completo'
 }
 
 export default function StatisticsPage(): JSX.Element {
+  const { t, locale } = useTranslation()
   const { activeProjectId } = useProjectStore()
   const [stats, setStats] = useState<ProjectStatistics | null>(null)
   // v0.3.5: due schede, "Principale" (comportamento storico) e "Analisi" (nuova).
@@ -22,7 +25,7 @@ export default function StatisticsPage(): JSX.Element {
     window.mybook.statistics.get(activeProjectId).then(setStats)
   }, [activeProjectId])
 
-  if (!activeProjectId) return <div className="p-6 text-sm text-gray-400">Apri un progetto dal Manoscritto.</div>
+  if (!activeProjectId) return <div className="p-6 text-sm text-gray-400">{t('common.openProject')}</div>
 
   const tabButton = (value: typeof tab, label: string): JSX.Element => (
     <button
@@ -43,26 +46,26 @@ export default function StatisticsPage(): JSX.Element {
   // resterebbe bloccato dietro un semplice "Caricamento…" della Principale.
   const cards = stats
     ? [
-        { label: 'Parole totali', value: stats.totalWords.toLocaleString('it-IT') },
+        { label: t('statistics.totalWords'), value: stats.totalWords.toLocaleString(locale) },
         {
-          label: 'Caratteri totali (spazi esclusi/inclusi)',
-          value: `${stats.totalCharsWithoutSpaces.toLocaleString('it-IT')} / ${stats.totalChars.toLocaleString('it-IT')}`
+          label: t('statistics.totalChars'),
+          value: `${stats.totalCharsWithoutSpaces.toLocaleString(locale)} / ${stats.totalChars.toLocaleString(locale)}`
         }
       ]
     : []
 
   return (
     <div className="p-6">
-      <h1 className="mb-2 text-xl font-semibold">Statistiche</h1>
+      <h1 className="mb-2 text-xl font-semibold">{t('nav.statistics')}</h1>
       <div className="mb-4 flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        {tabButton('principale', 'Principale')}
-        {tabButton('analisi', 'Analisi')}
+        {tabButton('principale', t('statistics.tab.main'))}
+        {tabButton('analisi', t('statistics.tab.analysis'))}
       </div>
 
       {tab === 'analisi' ? (
         <AnalysisTab projectId={activeProjectId} />
       ) : !stats ? (
-        <div className="text-sm text-gray-400">Caricamento…</div>
+        <div className="text-sm text-gray-400">{t('common.loading')}</div>
       ) : (
       <>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -89,7 +92,7 @@ export default function StatisticsPage(): JSX.Element {
           <div className="relative">
             <div className="text-2xl font-semibold">{stats.completionPct}%</div>
             <div className="text-sm text-gray-500">
-              {stats.chaptersCompleted}/{stats.chaptersTotal} capitoli · {stats.completedNodes}/{stats.totalNodes} scene completate
+              {t('statistics.completion', { chaptersDone: stats.chaptersCompleted, chaptersTotal: stats.chaptersTotal, scenesDone: stats.completedNodes, scenesTotal: stats.totalNodes })}
             </div>
           </div>
         </div>
@@ -97,42 +100,42 @@ export default function StatisticsPage(): JSX.Element {
 
       {/* Statistiche generali: data creazione progetto, giorni trascorsi, media parole/giorno */}
       <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Statistiche generali
+        {t('statistics.general')}
       </h2>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <div className="rounded border border-gray-200 p-4">
           <div className="text-lg font-medium">
             {stats.projectCreatedAt
-              ? new Date(stats.projectCreatedAt).toLocaleDateString('it-IT')
+              ? new Date(stats.projectCreatedAt).toLocaleDateString(locale)
               : '—'}
           </div>
-          <div className="text-sm text-gray-500">Data creazione progetto</div>
+          <div className="text-sm text-gray-500">{t('statistics.createdAt')}</div>
         </div>
         <div className="rounded border border-gray-200 p-4">
           <div className="text-2xl font-semibold">{stats.daysSinceCreation ?? '—'}</div>
-          <div className="text-sm text-gray-500">Giorni trascorsi</div>
+          <div className="text-sm text-gray-500">{t('statistics.daysElapsed')}</div>
         </div>
         <div className="rounded border border-gray-200 p-4">
           <div className="text-2xl font-semibold">{stats.avgWordsPerDay ?? '—'}</div>
-          <div className="text-sm text-gray-500">Media parole/giorno</div>
+          <div className="text-sm text-gray-500">{t('statistics.avgWordsPerDay')}</div>
         </div>
       </div>
 
       {/* Spaccato per capitolo: num scene, lunghezza, stato */}
       <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Per capitolo
+        {t('statistics.perChapter')}
       </h2>
       {stats.chapters.length === 0 ? (
-        <p className="text-sm text-gray-400">Nessun capitolo ancora creato.</p>
+        <p className="text-sm text-gray-400">{t('common.noChapters')}</p>
       ) : (
         <div className="overflow-hidden rounded border border-gray-200">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
               <tr>
-                <th className="px-3 py-2">Capitolo</th>
-                <th className="px-3 py-2">Scene</th>
-                <th className="px-3 py-2">Parole</th>
-                <th className="px-3 py-2">Stato scene</th>
+                <th className="px-3 py-2">{t('statistics.col.chapter')}</th>
+                <th className="px-3 py-2">{t('statistics.col.scenes')}</th>
+                <th className="px-3 py-2">{t('statistics.col.words')}</th>
+                <th className="px-3 py-2">{t('statistics.col.sceneStatus')}</th>
               </tr>
             </thead>
             <tbody>
@@ -149,7 +152,7 @@ export default function StatisticsPage(): JSX.Element {
                             key={s}
                             className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
                           >
-                            {STATUS_LABELS[s]}: {c[s]}
+                            {t(STATUS_LABEL_KEYS[s])}: {c[s]}
                           </span>
                         ) : null
                       )}

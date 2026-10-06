@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.4.0
+Tre modifiche consistenti, concordate prima di scrivere codice (soluzione e scelte discusse; "Lingua del libro" aggiunta su richiesta). Per ciascuna: cosa cambia e perché.
+
+- **Cerca e sostituisci** (Manoscritto → toolbar "Cerca", oppure Ctrl/Cmd+F e Ctrl/Cmd+H)
+  - Una finestra con **Trova** (opzioni *Solo parole intere* e *Distingui maiuscole/minuscole*), **Trova successivo/precedente** (Invio / Maiusc+Invio), **contatore** ("3 di 12"), **Sostituisci** e **Sostituisci tutti**. Tutte le occorrenze sono evidenziate nel testo, quella corrente con un tono più forte.
+  - *Perché è stato riscritto il motore, non solo spostato in una finestra*: la vecchia ricerca inline guardava un nodo di testo alla volta, quindi una parola a cavallo di un cambio di formattazione ("ciao **mondo**") non veniva trovata. Ora si cerca sul testo continuo di ogni paragrafo.
+  - *Parole intere con gli accenti*: `\b` di JavaScript considera lettere solo A–Z, quindi "perch" risultava parola intera dentro "perché". Si usano i confini Unicode (lettere/cifre), e il maiuscolo/minuscolo con il flag `i` (non con `toLowerCase`, che può cambiare la lunghezza del testo e sfasare le posizioni).
+  - *Sostituzione*: conserva la formattazione del testo sostituito, **compresi tag e commenti** (rinominare "Marco" in "Marcello" non fa sparire il tag del personaggio). "Sostituisci tutti" è **un solo passo di Annulla**. Se la selezione non è un'occorrenza, "Sostituisci" seleziona la prossima senza sostituire a vuoto.
+  - *Scelta concordata*: finestra **flottante non bloccante** (senza sfondo oscurato) sotto la toolbar, non una modal bloccante: serve vedere e correggere il testo mentre si scorrono i risultati. Esc la chiude. Il testo selezionato precompila "Trova".
+  - Con la scena **bloccata** ("Finito") la ricerca e lo zoom restano utilizzabili (prima l'intera toolbar si disattivava); "Sostituisci" è disabilitato.
+  - *Ambito*: scena corrente. La ricerca su tutto il progetto è rimandata (proposta per la 0.5).
+
+- **Scorciatoie da tastiera configurabili** (Impostazioni → Editor → Strumenti toolbar)
+  - Una scorciatoia per **azione** (29), non per strumento: Titolo, Liste, Allineamento, Dialoghi e Zoom ne contengono più d'una. Campo "premi la combinazione", **conflitti rifiutati con il nome dell'azione che già la usa**, combinazioni inutilizzabili rifiutate con il motivo (senza Ctrl/Cmd/Alt le lettere scriverebbero testo; copia/incolla/taglia/seleziona tutto sono del sistema), ripristino singolo e totale. Esc annulla la registrazione, Backspace toglie la scorciatoia.
+  - *Default = scorciatoie che l'editor già rispondeva* (Ctrl+B, I, U, Z, Y, Maiusc+S…), più Ctrl+K (link), Ctrl+F/H, Ctrl+=/−/0 (zoom): chi non personalizza nulla non nota differenze. Ctrl+Maiusc+Z resta attivo come alias di Ripeti.
+  - I tooltip della toolbar mostrano la scorciatoia **reale**, anche se personalizzata ("Grassetto (Ctrl+Maiusc+M)"; "⌘" su Mac).
+  - *Scelte concordate*: valgono anche con lo strumento **nascosto** dalla toolbar; si salva `Mod` (Ctrl su Windows/Linux, Cmd su Mac), così il database resta valido passando da un sistema all'altro; si salvano solo le **differenze** dai default, così le azioni aggiunte in futuro ricevono subito il loro default.
+  - *Come funziona*: un gestore con priorità alta intercetta i tasti **prima** di quelli di TipTap. Una scorciatoia nativa lasciata libera (es. togliendo "Grassetto") viene **inghiottita**, altrimenti Ctrl+B continuerebbe a funzionare. Il tasto si legge dalla posizione fisica (`event.code`): Maiusc+7 resta "7" anche se su tastiera italiana produce "/". Gli eventi con **AltGr** sono ignorati (su Windows AltGr è Ctrl+Alt: scatterebbe una scorciatoia mentre si digita un carattere).
+  - *Scelta da confermare*: **nessun default per i tre Dialoghi, Immagine e Separatore pagina**. Le combinazioni "naturali" (Ctrl+Alt+lettera) collidono con AltGr su molte tastiere europee; meglio lasciar scegliere che imporne una scomoda.
+  - Le azioni vivono ora in un unico punto (`editorActions.ts`) usato sia dai pulsanti sia dalle scorciatoie: prima ogni pulsante aveva il proprio comando incorporato.
+
+- **Localizzazione completa italiano/inglese** (Impostazioni → Generale → Lingua)
+  - Tutta l'interfaccia (≈ 540 testi): pagine, finestre, conferme, tooltip, il **menu contestuale nativo dell'editor**, i filtri dei dialoghi di file, gli esiti di backup/ripristino, date e numeri nel formato della lingua. Il cambio è **immediato, senza riavvio**, anche per il menu nativo.
+  - Motore leggero, **nessuna nuova dipendenza** (servono due lingue, segnaposto `{nome}` e plurali): `src/shared/i18n`, condiviso tra renderer e main. Il tipo delle chiavi deriva dall'italiano e `en.ts` **non compila** se manca anche una sola chiave. Corretti anche plurali sbagliati ("1 capitoli").
+  - *Prima installazione*: la lingua parte da quella del **sistema** (italiano se italiano, altrimenti inglese) e il **manuale** viene importato in quella lingua (nuovo `Manual.en.mybook.json`; entrambi i manuali hanno una nuova scena su ricerca, scorciatoie e lingue). Chi aggiorna da una versione precedente non viene toccato.
+  - *Regola per i nomi creati dall'app*: ciò che l'app scrive nel database ("Nuovo gruppo", "Nuova scena", "(copia)", timeline/mappa predefinite, voci del registro) resta **nella lingua del momento della creazione** e non viene ritradotto: sono dati dell'utente, non interfaccia.
+  - *Messaggi interni*: gli errori di diagnostica per sviluppatori (campi non consentiti, nodo non trovato…) sono ora in inglese neutro; non sono mai mostrati in uso normale.
+
+- **Lingua del libro** (Nuovo/Modifica progetto → Dati base; richiesta in aggiunta)
+  - Ogni progetto dichiara in che lingua è scritto il manoscritto (italiano/inglese), **distinta dalla lingua dell'interfaccia**: chi scrive in inglese con l'app in italiano deve ottenere comunque risultati corretti. Per un nuovo progetto parte dalla lingua dell'interfaccia.
+  - *Analisi → parole chiave*: stopword italiane o inglesi (con le contrazioni: *don't*, *it's*…) secondo la lingua del libro.
+  - *Export*: EPUB `dc:language` e titolo dell'indice ("Indice"/"Contents"), `lang` dell'HTML, **lingua del documento Word** (correzione e sillabazione), nome file di ripiego.
+  - *Compatibilità*: i progetti esistenti e i pacchetti `.mybook.json` esportati prima della 0.4.0 risultano **italiani**, cioè esattamente come l'app li ha sempre trattati. Duplicazione ed export/import conservano la lingua; un valore non valido in un pacchetto ripiega sull'italiano.
+  - *Non incluso*: il correttore ortografico non segue la lingua del libro (resta nelle Impostazioni, dizionari multipli).
+
+- **Correzioni e miglioramenti collaterali**
+  - **Strumento Link**: usava `window.prompt()`, che Electron non supporta (lancia un errore), quindi non poteva funzionare nell'app reale. Ora c'è una finestra dedicata; l'indirizzo viene normalizzato (aggiunge `https://`) e gli schemi pericolosi (`javascript:`, `data:`…) sono rifiutati, perché finirebbero negli export HTML/EPUB. Senza selezione inserisce l'indirizzo come testo cliccabile; "Rimuovi link" ora funziona anche col cursore dentro un link.
+  - Etichette degli strumenti in italiano nelle Impostazioni (prima "Undo", "Redo", "Heading", "Font", "Size"); il motivo delle revisioni ("pause", "manual") è tradotto.
+  - Le etichette del registro attività erano duplicate in due file: ora una sola.
+  - `ProjectRepository.insert` accetta ancora chiamate senza lingua del libro (default italiano).
+  - Corretto un errore di tipo preesistente nella toolbar (livello dei titoli).
+
+- **Dati**: migrazioni `024_book_language.sql` (`projects.book_language`, default `'it'`) e `025_editor_shortcuts.sql` (`app_settings.editor_shortcuts`, JSON delle sole personalizzazioni, default `'{}'`). Entrambe additive: nessun dato esistente viene modificato.
+- **Test**: da 251 a **413** (nuovi: motore delle scorciatoie, motore di ricerca, adattatore ProseMirror su documenti reali — anche "un solo passo di Annulla" —, gestore di tastiera, normalizzazione URL, i18n, Lingua del libro su dati/analisi/export, persistenza delle scorciatoie, due manuali). Sono incluse due protezioni permanenti: ogni chiave `t('…')` usata nel codice deve esistere e ogni testo del dizionario deve essere usato; e un test che **fallisce se compare di nuovo testo italiano cablato** nell'interfaccia. `tsc` del processo main pulito; per il renderer restano solo gli errori `TS7006` preesistenti (da 9 a 8). `electron-vite build` riesce.
+- *Non verificabile in questo ambiente*: l'app Electron non può essere avviata qui. La logica è coperta dai test, ma la resa visiva e il comportamento reale della tastiera vanno provati sulla tua macchina. Controlli consigliati: (1) Ctrl+F con testo selezionato, Invio per scorrere, Sostituisci tutti e un solo Ctrl+Z; (2) riassegnare una scorciatoia a una già usata e verificare il rifiuto; (3) cambiare lingua da Impostazioni e aprire il menu tasto destro nell'editor; (4) nuovo progetto in inglese ed export EPUB; (5) strumento Link; (6) su macOS, ⌘ al posto di Ctrl.
+
 ## 0.3.9
 - **Recap**: il pulsante "Ho capito" prende il focus all'apertura (Invio lo attiva) ed Esc chiude la finestra. Corretto anche un difetto preesistente: il recap non conosceva le etichette dei nuovi tipi di voce (eventi Timeline, nodi/collegamenti della Mappa) aggiunti in 0.3.6.
 - **Impostazioni** compare nella navigazione solo con un progetto aperto.

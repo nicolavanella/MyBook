@@ -45,7 +45,9 @@ export class ProjectService {
       description: input.description ?? '',
       notes: input.notes ?? '',
       plot: input.plot ?? '',
-      fabula: input.fabula ?? ''
+      fabula: input.fabula ?? '',
+      // v0.4.0: senza indicazione, italiano (comportamento storico dell'app).
+      book_language: input.book_language ?? 'it'
     })
     return this.repo.findById(id)
   }

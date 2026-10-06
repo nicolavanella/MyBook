@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AutosizeTextarea from '@renderer/components/AutosizeTextarea'
+import { useTranslation } from '@renderer/i18n/useTranslation'
 
 export interface EditableNode {
   id: string
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSave, onDelete }: Props): JSX.Element {
+  const { t } = useTranslation()
   const [label, setLabel] = useState(node.label)
   const [description, setDescription] = useState(node.description)
   const [groupId, setGroupId] = useState<string>(node.group_id ?? '')
@@ -27,9 +29,9 @@ export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSa
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/30" onClick={onClose}>
       <div className="w-96 rounded-lg bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">Modifica nodo</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-800">{t('mindmap.edit.title')}</h2>
 
-        <label className="mb-1 block text-xs font-medium text-gray-600">Titolo</label>
+        <label className="mb-1 block text-xs font-medium text-gray-600">{t('mindmap.nodeTitle')}</label>
         <input
           autoFocus
           disabled={isEntityLinked}
@@ -39,12 +41,12 @@ export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSa
         />
         {isEntityLinked && (
           <p className="mb-3 text-xs text-gray-400">
-            Collegato a un elemento esistente: rinominalo dalla sua sezione dedicata.
+            {t('mindmap.linkedHint')}
           </p>
         )}
         {!isEntityLinked && <div className="mb-3" />}
 
-        <label className="mb-1 block text-xs font-medium text-gray-600">Descrizione</label>
+        <label className="mb-1 block text-xs font-medium text-gray-600">{t('entities.description')}</label>
         <AutosizeTextarea
           rows={3}
           className="mb-3 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
@@ -55,14 +57,14 @@ export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSa
         {node.node_type !== 'group' && groupOptions.length > 0 && (
           <>
             <label className="mb-1 block text-xs font-medium text-gray-600">
-              Gruppo (vista kanban)
+              {t('mindmap.groupKanban')}
             </label>
             <select
               className="mb-4 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
             >
-              <option value="">— nessuno —</option>
+              <option value="">{t('mindmap.noneOption')}</option>
               {groupOptions.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.label}
@@ -77,17 +79,17 @@ export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSa
             onClick={onDelete}
             className="rounded px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
           >
-            Elimina nodo
+            {t('mindmap.deleteNode')}
           </button>
           <div className="flex gap-2">
             <button onClick={onClose} className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">
-              Annulla
+              {t('common.cancel')}
             </button>
             <button
               onClick={() => onSave(label, description, groupId || null)}
               className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white"
             >
-              Salva
+              {t('common.save')}
             </button>
           </div>
         </div>
