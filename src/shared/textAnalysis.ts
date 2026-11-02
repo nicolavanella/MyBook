@@ -22,22 +22,42 @@ export const WORDS_PER_PRINT_PAGE = 300
 export const READING_WORDS_PER_MINUTE = 200
 
 /** Un blocco di primo livello del documento TipTap (paragrafo, titolo, voce di elenco...). */
-interface TiptapNode {
+export interface TiptapNode {
   type?: string
   text?: string
   content?: TiptapNode[]
 }
 
-/** Estrae ricorsivamente tutto il testo di un nodo TipTap (senza separatori tra i figli: li aggiunge il chiamante). */
+/**
+ * Estrae ricorsivamente tutto il testo di un nodo TipTap.
+ *
+ * REGOLA DEI SEPARATORI (v0.4.2 — correzione del conteggio parole):
+ *  - i nodi di testo adiacenti dentro lo STESSO blocco si concatenano SENZA
+ *    separatore. In TipTap un testo spezzato in più nodi (grassetto, tag di
+ *    un personaggio, commento...) è sempre una sola riga continua: "Marco" con
+ *    un tag seguito da ", disse" è "Marco, disse", NON "Marco , disse".
+ *    Prima della 0.4.2 si univa tutto con uno spazio e ogni cambio di
+ *    formattazione a metà parola ("per" + grassetto "ché") o accanto alla
+ *    punteggiatura creava una parola in più (la virgola contava come parola);
+ *  - i nodi "foglia" che non sono testo (a capo forzato, immagine, linea
+ *    orizzontale) valgono uno spazio: separano le parole, non le incollano;
+ *  - i blocchi figli di un altro blocco (voci di elenco, citazioni) si
+ *    separano con uno spazio, così "fine primo punto" e "inizio secondo"
+ *    non si fondono in un'unica parola.
+ */
 function extractNodeText(node: TiptapNode | undefined): string {
   if (!node) return ''
-  if (node.type === 'text' && typeof node.text === 'string') return node.text
-  if (!Array.isArray(node.content)) return ''
-  // Spazio tra i figli: due nodi di testo adiacenti in un paragrafo semplice
-  // sono normalmente già separati da un nodo di testo con lo spazio incluso,
-  // ma l'unione esplicita evita parole "incollate" nei casi limite (es. un
-  // nodo immagine tra due frasi).
-  return node.content.map(extractNodeText).join(' ')
+  if (node.type === 'text') return typeof node.text === 'string' ? node.text : ''
+  if (!Array.isArray(node.content)) return ' '
+  // "Inline": tutti i figli sono testo o foglie senza contenuto → si concatenano.
+  const isInlineContainer = node.content.every((child) => child?.type === 'text' || !Array.isArray(child?.content))
+  return node.content.map(extractNodeText).join(isInlineContainer ? '' : ' ')
+}
+
+/** Paragrafi (blocchi di primo livello) di un documento TipTap GIÀ analizzato, con spazi normalizzati e senza blocchi vuoti. */
+function paragraphsOfDoc(doc: TiptapNode | null | undefined): string[] {
+  if (!doc || !Array.isArray(doc.content)) return []
+  return doc.content.map((node) => extractNodeText(node).replace(/\s+/g, ' ').trim()).filter((text) => text.length > 0)
 }
 
 /**
@@ -45,21 +65,35 @@ function extractNodeText(node: TiptapNode | undefined): string {
  * elenco di paragrafi: un elemento per ogni blocco di primo livello
  * (paragrafo, titolo, voce di lista...) con testo non vuoto.
  *
- * A differenza di document.service.ts::extractPlainText (che unisce tutto
- * con uno spazio, per il conteggio parole "storico"), qui i blocchi restano
- * separati: serve a contare i paragrafi e a delimitare correttamente le frasi
- * a cavallo tra un blocco e il successivo.
+ * I blocchi restano separati: serve a contare i paragrafi e a delimitare
+ * correttamente le frasi a cavallo tra un blocco e il successivo. Dalla
+ * 0.4.2 è l'UNICA fonte del testo: anche il conteggio parole/caratteri
+ * (vedi countWordsAndChars) passa da qui, così scheda Statistiche, albero
+ * del manoscritto ed editor danno sempre lo stesso numero.
  */
 export function extractParagraphs(tiptapJson: string | null | undefined): string[] {
   if (!tiptapJson) return []
-  let doc: TiptapNode
   try {
-    doc = JSON.parse(tiptapJson)
+    return paragraphsOfDoc(JSON.parse(tiptapJson))
   } catch {
     return [] // contenuto non ancora valorizzato come TipTap JSON (es. scena appena creata)
   }
-  if (!Array.isArray(doc.content)) return []
-  return doc.content.map((node) => extractNodeText(node).replace(/\s+/g, ' ').trim()).filter((text) => text.length > 0)
+}
+
+/**
+ * Conteggio parole e caratteri (spazi inclusi) di un contenuto TipTap.
+ * Accetta sia la stringa JSON salvata nel database sia il documento già
+ * analizzato (es. `editor.getJSON()` nell'editor), per dare feedback
+ * immediato mentre si digita con la stessa regola usata dal salvataggio.
+ * Parole e caratteri sono calcolati come in analyzeText: paragrafi non vuoti
+ * uniti da un solo spazio.
+ */
+export function countWordsAndChars(source: string | TiptapNode | null | undefined): { words: number; chars: number } {
+  let paragraphs: string[]
+  if (typeof source === 'string') paragraphs = extractParagraphs(source)
+  else paragraphs = paragraphsOfDoc(source)
+  const fullText = paragraphs.join(' ')
+  return { words: fullText ? fullText.split(/\s+/).length : 0, chars: fullText.length }
 }
 
 export interface TextAnalysis {

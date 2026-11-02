@@ -12,7 +12,7 @@ progetto (analisi delle parole chiave ed export). Dettagli in `CHANGELOG.md`.
 ## Stack
 
 Electron · electron-vite · React + TypeScript · TipTap · Zustand · dnd-kit ·
-Tailwind CSS · better-sqlite3 · Zod · React Router · React Flow · Vitest
+Tailwind CSS · better-sqlite3 · Zod · React Router · Vitest
 
 ## Requisiti
 
@@ -122,5 +122,5 @@ anziché cancellare la cronologia successiva.
 
 Scheletro funzionante: creazione progetto, albero capitoli/scene, editor con
 autosave e revisioni, schede personaggi/località con campi personalizzati,
-timeline, mappa concettuale (React Flow) con nodi/collegamenti liberi,
+timeline, mappa concettuale (motore di grafi interno) con nodi/collegamenti liberi,
 statistiche, export TXT/MD/HTML/DOCX/PDF.

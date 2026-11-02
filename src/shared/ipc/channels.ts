@@ -11,7 +11,10 @@ export const IpcChannels = {
     openLicense: 'app.openLicense',
     // v0.3.5: richiesta "To Do" alla chiusura (vedi main/index.ts e MainLayout.tsx).
     quitRequested: 'app.quitRequested', // push dal main al renderer, quando l'utente chiude la finestra
-    confirmQuit: 'app.confirmQuit' // invoke dal renderer: salva il ToDo (se presente) e autorizza la chiusura
+    confirmQuit: 'app.confirmQuit', // invoke dal renderer: salva il ToDo (se presente) e autorizza la chiusura
+    // v0.4.2: la chiusura non ha più un timeout sull'attesa della persona (vedi main/quit-coordinator.ts).
+    quitAck: 'app.quitAck', // invoke dal renderer, SUBITO alla richiesta: "ho preso in carico la chiusura"
+    cancelQuit: 'app.cancelQuit' // invoke dal renderer: la persona ha annullato, la finestra resta aperta
   },
   editor: {
     setFocused: 'editor.setFocused',
@@ -108,6 +111,8 @@ export const IpcChannels = {
     updateNode: 'mindmap.updateNode',
     deleteNode: 'mindmap.deleteNode',
     createEdge: 'mindmap.createEdge',
+    updateEdge: 'mindmap.updateEdge',
+    reorderNodes: 'mindmap.reorderNodes',
     deleteEdge: 'mindmap.deleteEdge'
   },
   statistics: {

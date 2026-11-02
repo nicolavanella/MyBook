@@ -24,12 +24,33 @@ describe('extractParagraphs', () => {
     expect(extractParagraphs(null)).toEqual([])
     expect(extractParagraphs('non è json')).toEqual([])
   })
-  it('unisce con uno spazio i nodi di testo dentro lo stesso blocco (es. formattazione mista)', () => {
+  it('v0.4.2: i nodi di testo adiacenti dello stesso blocco si concatenano SENZA spazio (formattazione mista)', () => {
+    // Questo test, fino alla 0.4.1, pretendeva "Ciao mondo": era proprio il difetto. In TipTap un testo
+    // spezzato in più nodi (grassetto, tag, commento) è una riga continua; lo spazio, se c'è, è nel testo.
     const json = JSON.stringify({
       type: 'doc',
       content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Ciao' }, { type: 'text', text: 'mondo' }] }]
     })
-    expect(extractParagraphs(json)).toEqual(['Ciao mondo'])
+    expect(extractParagraphs(json)).toEqual(['Ciaomondo'])
+  })
+  it('conserva gli spazi scritti dentro i nodi di testo', () => {
+    const json = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Ciao ' }, { type: 'text', text: 'mondo', marks: [{ type: 'bold' }] }, { type: 'text', text: ', come va?' }] }]
+    })
+    expect(extractParagraphs(json)).toEqual(['Ciao mondo, come va?'])
+  })
+  it('a capo forzato, immagini e linee orizzontali separano le parole invece di incollarle', () => {
+    const json = JSON.stringify({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'prima' }, { type: 'hardBreak' }, { type: 'text', text: 'dopo' }, { type: 'image', attrs: { src: 'x' } }, { type: 'text', text: 'fine' }] }]
+    })
+    expect(extractParagraphs(json)).toEqual(['prima dopo fine'])
+  })
+  it('le voci di un elenco e i blocchi annidati restano separati da uno spazio', () => {
+    const li = (t: string) => ({ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: t }] }] })
+    const json = JSON.stringify({ type: 'doc', content: [{ type: 'bulletList', content: [li('primo punto'), li('secondo punto')] }] })
+    expect(extractParagraphs(json)).toEqual(['primo punto secondo punto'])
   })
 })
 

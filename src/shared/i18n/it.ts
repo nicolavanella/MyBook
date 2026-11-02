@@ -348,6 +348,7 @@ export const it = {
   'settings.db.confirmClearLabel': 'Svuota database',
   'settings.db.confirmReset': 'Resettare completamente il database? Tutti i progetti e le impostazioni verranno eliminati.',
   'settings.db.confirmLoad': 'Caricare questo database? Il database corrente verrà sostituito e l’app verrà riavviata.',
+  'settings.log.hideRecapHint': 'Nasconde il To Do alla chiusura del progetto e il riepilogo all’apertura. Il registro continua a registrare.',
 
   // ── chapters ────────────────────────────────────────────────────
   'chapters.locked': 'Capitolo bloccato',
@@ -469,7 +470,10 @@ export const it = {
   'mindmap.viewGraph': 'Vista grafo',
   'mindmap.addGroup': '+ Gruppo',
   'mindmap.addNode': '+ Aggiungi nodo',
-  'mindmap.hint': 'Trascina per collegare · doppio click per modificare · Canc per eliminare',
+  'mindmap.hint': 'Trascina per collegare · doppio click su un nodo per modificarlo, su un collegamento per la sua etichetta · Canc per eliminare',
+  'mindmap.zoomIn': 'Ingrandisci',
+  'mindmap.zoomOut': 'Riduci',
+  'mindmap.fitView': 'Adatta alla vista',
   'mindmap.expandColumn': 'Espandi colonna',
   'mindmap.collapseColumn': 'Comprimi colonna',
   'mindmap.dropHere': 'Trascina qui un nodo',
@@ -493,6 +497,14 @@ export const it = {
   'mindmap.noneOption': '— nessuno —',
   'mindmap.deleteNode': 'Elimina nodo',
   'mindmap.mainName': 'Mappa principale',
+  'mindmap.descriptionCopiedHint': 'La descrizione della scheda viene copiata qui: puoi modificarla senza cambiare la scheda.',
+  'mindmap.openLinked': 'Apri la scheda collegata ({type})',
+  'mindmap.edge.title': 'Etichetta del collegamento',
+  'mindmap.edge.placeholder': 'Es. è amico di, vive a…',
+  'mindmap.edge.hint': 'Lascia vuoto per togliere l’etichetta.',
+  'mindmap.groupColor': 'Colore del gruppo',
+  'mindmap.groupColorCustom': 'Personalizzato',
+  'mindmap.groupColorNone': 'Nessun colore',
 
   // ── statistics ──────────────────────────────────────────────────
   'statistics.tab.main': 'Principale',
@@ -563,6 +575,8 @@ export const it = {
   'todo.placeholder': 'Es. Rivedere il dialogo del capitolo 4, sistemare la timeline…',
   'todo.skip': 'Salta',
   'todo.saveAndClose': 'Salva e chiudi',
+  'todo.dontShowAgain': 'Non mostrare più',
+  'todo.dontShowAgainHint': 'Disattiva questa finestra e il riepilogo (con il To Do) all’apertura del progetto. Si riattiva da Impostazioni > Log.',
 
   // ── tagPicker ───────────────────────────────────────────────────
   'tagPicker.title': 'Tag: {type}',
@@ -618,6 +632,10 @@ export const it = {
   'maintenance.integrityFailed': 'Il database di backup non supera il controllo di integrità.',
   'maintenance.notMyBookDb': 'Il file selezionato non è un database MyBook valido.',
   'maintenance.sameAsActive': 'Il backup selezionato coincide con il database attivo.',
+  'media.unsupportedType': 'Il file selezionato non è un\'immagine supportata (PNG, JPG, GIF o WebP).',
+  'media.tooLarge': 'L\'immagine supera la dimensione massima consentita ({maxMb} MB).',
+  'maintenance.backupTooNew': 'Il backup è stato creato da una versione più recente di MyBook: aggiorna l\'app prima di ripristinarlo.',
+  'maintenance.restoreFailed': 'Ripristino non riuscito: il database attuale è stato lasciato intatto. Dettaglio: {detail}',
 
   // ── backup ──────────────────────────────────────────────────────
   'backup.noFolder': 'Nessuna cartella di backup configurata.',
@@ -631,5 +649,12 @@ export const it = {
   'dialog.mybookProject': 'Progetto MyBook',
   'dialog.images': 'Immagini',
   'dialog.defaultProjectFileName': 'progetto',
-  'dialog.invalidJson': 'Il file selezionato non è un JSON valido.'
+  'dialog.invalidJson': 'Il file selezionato non è un JSON valido.',
+
+  // ── backupSetup ─────────────────────────────────────────────────
+  'backupSetup.title': 'Dove vuoi salvare i backup?',
+  'backupSetup.description': 'MyBook non ha ancora una cartella di backup. Scegline una per proteggere il tuo lavoro: le copie di sicurezza partiranno da sole, alla chiusura dell’app.',
+  'backupSetup.hint': 'Meglio una cartella su un altro disco o su un servizio di sincronizzazione. Potrai cambiarla in ogni momento da Impostazioni > Generale > Backup.',
+  'backupSetup.later': 'Più tardi',
+  'backupSetup.choose': 'Scegli cartella…'
 } as const

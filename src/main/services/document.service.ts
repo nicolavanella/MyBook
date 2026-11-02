@@ -7,32 +7,18 @@ import type {
 import { getConfig } from '../config'
 import { tm } from '../i18n'
 
-/** Estrae testo semplice da un documento TipTap JSON, per contare parole/caratteri. */
-import { extractParagraphs, analyzeText } from '@shared/textAnalysis'
+import { extractParagraphs, analyzeText, countWordsAndChars } from '@shared/textAnalysis'
 import { findAllEntityTagOccurrences } from '@shared/entityTagScan'
 import { getRootItems, getChaptersOfGroup } from '@shared/manuscriptTree'
 import type { SceneTagsRepository } from '../database/repositories/scene-tags.repository'
 
+/**
+ * Testo semplice di un contenuto TipTap (paragrafi non vuoti uniti da uno
+ * spazio), per confronto revisioni e caratteri senza spazi. Usa la stessa
+ * estrazione di conteggio parole/caratteri e della scheda Analisi.
+ */
 function extractPlainText(tiptapJson: string): string {
-  try {
-    const doc = JSON.parse(tiptapJson)
-    const parts: string[] = []
-    const walk = (node: any): void => {
-      if (!node) return
-      if (node.type === 'text' && typeof node.text === 'string') parts.push(node.text)
-      if (Array.isArray(node.content)) node.content.forEach(walk)
-    }
-    walk(doc)
-    return parts.join(' ')
-  } catch {
-    // content non ancora valorizzato come TipTap JSON (es. nodo appena creato)
-    return ''
-  }
-}
-
-function countWords(text: string): number {
-  const trimmed = text.trim()
-  return trimmed ? trimmed.split(/\s+/).length : 0
+  return extractParagraphs(tiptapJson).join(' ')
 }
 
 export class DocumentService {
@@ -72,9 +58,11 @@ export class DocumentService {
     const patch: Record<string, unknown> = { ...input.fields }
     const contentChanged = typeof input.fields.content === 'string'
     if (contentChanged) {
-      const text = extractPlainText(input.fields.content as string)
-      patch.word_count = countWords(text)
-      patch.char_count = text.length
+      // v0.4.2: stessa regola di estrazione della scheda Analisi e dell'editor
+      // (vedi shared/textAnalysis.ts): niente più parole "spezzate" dalla formattazione.
+      const { words, chars } = countWordsAndChars(input.fields.content as string)
+      patch.word_count = words
+      patch.char_count = chars
     }
     // SQLite/better-sqlite3 non supporta il binding di booleani JS: vanno
     // convertiti in 0/1 (stessa convenzione già usata in settings.service.ts).

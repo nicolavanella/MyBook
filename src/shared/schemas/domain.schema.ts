@@ -107,6 +107,9 @@ export const MindmapNodeUpdateInput = z.object({
     color: z.string().optional()
   }).strict()
 })
+export const MindmapEdgeUpdateInput = z.object({ id: Uuid, fields: z.object({ label: z.string() }).strict() })
+/** v0.4.1: riordino/spostamento di nodi in un gruppo del kanban (groupId null = "Senza gruppo"). */
+export const MindmapReorderNodesInput = z.object({ mindmapId: Uuid, groupId: Uuid.nullable(), orderedIds: z.array(Uuid) })
 export const MindmapEdgeCreateInput = z.object({
   projectId: Uuid,
   mindmapId: Uuid,

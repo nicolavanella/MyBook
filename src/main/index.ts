@@ -1,9 +1,12 @@
 import { app, BrowserWindow, shell, Menu, session, ipcMain } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { z } from 'zod'
 import { getDb, getDbPath, closeDb } from './database/db'
 import { loadWindowState, saveWindowState } from './window-state'
+import { QuitCoordinator } from './quit-coordinator'
+import { isAllowedExternalUrl, isInternalNavigation } from './security/external-url'
 import { IpcChannels } from '@shared/ipc/channels'
 
 import { ProjectRepository } from './database/repositories/project.repository'
@@ -47,15 +50,19 @@ import { registerEditorContextMenu, registerEditorContextClickReporter } from '.
 
 let settingsServiceRef: SettingsService | null = null
 let activityLogServiceRef: ActivityLogService | null = null
-// Finestra corrente e "lasciapassare" per la chiusura reale, usati dal flusso
-// "To Do alla chiusura" (v0.3.5): la prima 'close' viene intercettata per
-// chiedere al renderer di mostrare (eventualmente) il prompt; solo dopo la
-// conferma esplicita (IpcChannels.app.confirmQuit) la finestra si chiude
-// davvero. Un solo timer di sicurezza evita che l'app resti bloccata se il
-// renderer non risponde mai (finestra non ancora caricata, errore JS...).
+// Finestra corrente e coordinatore della chiusura, usati dal flusso "To Do alla
+// chiusura" (v0.3.5): la prima 'close' viene intercettata per chiedere al
+// renderer di mostrare (eventualmente) il prompt; solo dopo la conferma
+// esplicita (IpcChannels.app.confirmQuit) la finestra si chiude davvero.
+// v0.4.2: niente più timer fisso sull'attesa della persona (cancellava la nota
+// ancora in scrittura): il QuitCoordinator attende senza limite finché il
+// renderer è vivo e risponde, e forza la chiusura solo se il renderer è assente
+// o bloccato. La persona può anche annullare la chiusura (cancelQuit).
 let currentWindow: BrowserWindow | null = null
-let quitConfirmed = false
-const QUIT_CONFIRM_TIMEOUT_MS = 5_000
+let quitCoordinator: QuitCoordinator | null = null
+// v0.4.2 (macOS): true se il backup "alla chiusura" è già stato fatto dopo che l'ultima finestra
+// si è chiusa ma l'app è rimasta viva; evita un secondo backup identico al successivo Cmd+Q.
+let closeBackupDone = false
 // Evita un doppio tentativo di backup automatico (window-all-closed) quando
 // la chiusura di tutte le finestre è provocata da un relaunch deliberato
 // (reset/ripristino backup, vedi settings.ipc.ts): a quel punto il database
@@ -195,9 +202,12 @@ function registerAllIpc(): void {
   ipcMain.handle(IpcChannels.app.confirmQuit, (_e, raw: unknown) => {
     const { projectId, todo } = ConfirmQuitInput.parse(raw)
     if (projectId && typeof todo === 'string') activityLogServiceRef?.setTodo(projectId, todo)
-    quitConfirmed = true
-    currentWindow?.close()
+    quitCoordinator?.confirm()
   })
+  // v0.4.2: il renderer conferma subito di aver preso in carico la richiesta di chiusura (da qui si
+  // attende la persona senza timeout) oppure la persona annulla e la finestra resta aperta.
+  ipcMain.handle(IpcChannels.app.quitAck, () => quitCoordinator?.ack())
+  ipcMain.handle(IpcChannels.app.cancelQuit, () => quitCoordinator?.cancel())
 }
 
 function createMainWindow(): void {
@@ -233,7 +243,17 @@ function createMainWindow(): void {
   win.once('ready-to-show', () => win.show())
 
   currentWindow = win
-  quitConfirmed = false
+  closeBackupDone = false
+  // Un coordinatore per finestra: lo stato della chiusura non deve sopravvivere a una finestra chiusa.
+  const coordinator = new QuitCoordinator({
+    sendQuitRequested: () => win.webContents.send(IpcChannels.app.quitRequested),
+    closeWindow: () => win.close(),
+    focusWindow: () => {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
+  quitCoordinator = coordinator
 
   // Salvataggio dello stato: su 'close' (non 'closed', quando la finestra è
   // già distrutta) così la prossima apertura ricorda dimensione, posizione
@@ -248,23 +268,31 @@ function createMainWindow(): void {
     // (IpcChannels.app.confirmQuit) la chiusura procede davvero. isRelaunching
     // salta il prompt: a quel punto l'app sta per riavviarsi da sola (reset/
     // ripristino backup), non è l'utente a chiuderla.
-    if (quitConfirmed || isRelaunching) return
-    event.preventDefault()
-    win.webContents.send(IpcChannels.app.quitRequested)
-    // Rete di sicurezza: se il renderer non risponde mai (finestra non ancora
-    // caricata, eccezione JS) la chiusura non deve restare bloccata per sempre.
-    setTimeout(() => {
-      if (!quitConfirmed) {
-        quitConfirmed = true
-        win.close()
-      }
-    }, QUIT_CONFIRM_TIMEOUT_MS)
+    // v0.4.2: la logica di attesa/annullamento/rete di sicurezza è nel QuitCoordinator.
+    if (isRelaunching) return
+    if (coordinator.handleCloseEvent()) event.preventDefault()
   })
 
-  // Link esterni aperti nel browser di sistema, mai in finestre Electron nuove
+  // Link esterni aperti nel browser di sistema, mai in finestre Electron nuove.
+  // v0.4.2: solo http/https/mailto (security/external-url.ts); prima qualunque url
+  // finiva a shell.openExternal, che può avviare applicazioni arbitrarie.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    if (isAllowedExternalUrl(url)) shell.openExternal(url)
     return { action: 'deny' }
+  })
+
+  // v0.4.2: la finestra dell'app non deve mai navigare altrove (un link nel testo, un
+  // trascinamento di un file...): resterebbe senza la barra dell'app e con il preload esposto
+  // a una pagina esterna. Le navigazioni interne (ricarica, cambio hash del router) passano;
+  // un link web consentito si apre nel browser di sistema, il resto viene ignorato.
+  const appLocation = {
+    devServerUrl: process.env['ELECTRON_RENDERER_URL'],
+    indexFileUrl: pathToFileURL(path.join(__dirname, '../renderer/index.html')).href
+  }
+  win.webContents.on('will-navigate', (event, url) => {
+    if (isInternalNavigation(url, appLocation)) return
+    event.preventDefault()
+    if (isAllowedExternalUrl(url)) shell.openExternal(url)
   })
 
   registerEditorContextMenu(win)
@@ -309,20 +337,43 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('window-all-closed', () => {
-  // Backup automatico se la frequenza configurata è "alla chiusura" (Impostazioni
-  // > Generale > Backup). Le frequenze a intervallo (30min/1h/2h/4h) sono
-  // gestite invece dal timer periodico avviato sopra, non da qui.
-  if (!isRelaunching) {
-    try {
-      const settings = settingsServiceRef?.get() as any
-      if (settings?.backup_frequency === 'onClose') {
-        settingsServiceRef?.backupNow()
-      }
-    } catch (err) {
-      console.warn('[backup] backup automatico alla chiusura fallito:', (err as Error).message)
+/**
+ * Backup automatico "alla chiusura" (Impostazioni > Generale > Backup). Le
+ * frequenze a intervallo (30min/1h/2h/4h) sono gestite invece dal timer
+ * periodico avviato in whenReady, non da qui. Mai durante un riavvio
+ * deliberato (reset/ripristino): il database è appena stato sostituito.
+ */
+function runCloseBackupIfConfigured(): void {
+  if (isRelaunching) return
+  try {
+    const settings = settingsServiceRef?.get() as any
+    if (settings?.backup_frequency === 'onClose') {
+      settingsServiceRef?.backupNow()
     }
+  } catch (err) {
+    console.warn('[backup] backup automatico alla chiusura fallito:', (err as Error).message)
   }
+}
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    // Windows/Linux: chiudere l'ultima finestra termina l'app. Backup e chiusura del database
+    // avvengono in 'will-quit', che app.quit() fa scattare subito dopo.
+    app.quit()
+    return
+  }
+  // macOS: l'app RESTA VIVA senza finestre (si riapre dal Dock con 'activate'). v0.4.2: qui il
+  // database NON si chiude — fino alla 0.4.1 si chiudeva e la finestra riaperta trovava i
+  // repository collegati a una connessione chiusa (ogni operazione falliva). Si fa solo il
+  // backup, che altrimenti non avverrebbe finché l'app non viene davvero terminata.
+  runCloseBackupIfConfigured()
+  closeBackupDone = true
+})
+
+// Chiusura effettiva dell'app (tutte le piattaforme): ultimo punto in cui il database è ancora
+// aperto. Copre anche Cmd+Q su macOS, che NON emette 'window-all-closed' e quindi prima non
+// faceva il backup alla chiusura.
+app.on('will-quit', () => {
+  if (!closeBackupDone) runCloseBackupIfConfigured()
   closeDb()
-  if (process.platform !== 'darwin') app.quit()
 })

@@ -40,7 +40,7 @@ account, no cloud, no network required.
   entity is tagged — a click jumps to the exact spot in the text.
 - **Timeline** with a free-form narrative date plus an optional calendar date,
   search, and a compact view sortable by either date.
-- **Concept map** (React Flow) linking characters, locations, objects and
+- **Concept map** linking characters, locations, objects and
   chapters.
 
 **Statistics**
@@ -75,7 +75,7 @@ account, no cloud, no network required.
 ## Tech stack
 
 Electron · electron-vite · React + TypeScript · TipTap · Zustand · dnd-kit ·
-Tailwind CSS · better-sqlite3 · Zod · React Router · React Flow · Vitest
+Tailwind CSS · better-sqlite3 · Zod · React Router · Vitest
 
 ## Requirements
 

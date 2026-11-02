@@ -2,6 +2,7 @@ import { app, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { IpcChannels } from '@shared/ipc/channels'
 import { setSceneEditorFocused, setAnnotationsEnabled } from '../editor-context-menu'
+import { isAllowedExternalUrl } from '../security/external-url'
 
 /**
  * Percorso del file LICENSE incluso con l'applicazione: in sviluppo è alla
@@ -17,21 +18,16 @@ function resolveLicensePath(): string {
 /**
  * Il renderer non ha accesso diretto a `shell` (contextIsolation attiva),
  * quindi ogni apertura di link esterno passa da qui — usato dalla sezione
- * Info per i link a sito/repository/contatti. Limitato a http/https per non
- * trasformare questo canale in un modo per lanciare protocolli arbitrari
- * (es. file://, uno schema custom di un'altra app) dal renderer.
+ * Info per i link a sito/repository/contatti. Limitato a http, https e
+ * mailto (vedi security/external-url.ts, regola condivisa con l'apertura di
+ * finestre dal contenuto) per non trasformare questo canale in un modo per
+ * lanciare protocolli arbitrari (es. file://, uno schema custom di un'altra
+ * app) dal renderer. Fino alla 0.4.1 il commento diceva "solo http/https"
+ * ma il codice ammetteva anche mailto: ora le due cose coincidono.
  */
 export function registerAppIpc(): void {
-  ipcMain.handle(IpcChannels.app.openExternal, (_e, url: string) => {
-    let parsed: URL
-    try {
-      parsed = new URL(url)
-    } catch {
-      return { ok: false, reason: 'Invalid URL' }
-    }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && parsed.protocol !== 'mailto:') {
-      return { ok: false, reason: 'Protocol not allowed' }
-    }
+  ipcMain.handle(IpcChannels.app.openExternal, (_e, url: unknown) => {
+    if (!isAllowedExternalUrl(url)) return { ok: false, reason: 'Protocol not allowed' }
     shell.openExternal(url)
     return { ok: true }
   })

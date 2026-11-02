@@ -33,6 +33,10 @@ export const AppSettingsSchema = z.object({
   revisions_enabled: z.number().int(),
   // v0.3.5: registro attività (Log) + recap all'avvio + richiesta "To Do" alla chiusura del progetto.
   activity_log_enabled: z.number().int(),
+  /** v0.4.1: la richiesta della cartella di backup è già stata mostrata (1) — compare una sola volta. */
+  backup_prompt_shown: z.number().int(),
+  /** v0.4.1: 1 = mostra To Do alla chiusura e recap all'apertura; 0 = "Non mostrare più". */
+  todo_recap_enabled: z.number().int(),
   updated_at: z.string()
 })
 export type AppSettings = z.infer<typeof AppSettingsSchema>
@@ -60,7 +64,9 @@ export const UpdateAppSettingsInput = z
     tags_enabled: z.boolean().optional(),
     comments_enabled: z.boolean().optional(),
     revisions_enabled: z.boolean().optional(),
-    activity_log_enabled: z.boolean().optional()
+    activity_log_enabled: z.boolean().optional(),
+    backup_prompt_shown: z.boolean().optional(),
+    todo_recap_enabled: z.boolean().optional()
   })
   .partial()
 export type UpdateAppSettingsInput = z.infer<typeof UpdateAppSettingsInput>

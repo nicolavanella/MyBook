@@ -1,5 +1,149 @@
 # Changelog
 
+## 0.5.0
+Rimossa la dipendenza da React Flow: i grafi della mappa concettuale usano un motore interno, pensato per poterlo personalizzare. Decisioni concordate: obiettivo *controllo e personalizzazione*; perimetro *equivalenza con l'attuale + correzione dei difetti trovati*; test *logica pura in Node + checklist manuale*.
+
+- **Nuovo motore dei grafi (nessuna libreria esterna)**
+  - `lib/graphGeometry.ts` — matematica pura: coordinate mondo/schermo, zoom ancorato al cursore (stessa formula della rotellina di prima, limiti 0.5–2), adattamento alla vista, curve di Bézier con etichetta a metà, riquadro di selezione.
+  - `lib/graphInteraction.ts` — regole pure: selezione singola/multipla, collegamenti validi, cosa eliminare, quali nodi si spostano.
+  - `features/mindmap/GraphCanvas.tsx` — collega le regole agli eventi del mouse e disegna: strato del mondo con una sola trasformazione, collegamenti in SVG, nodi ed etichette in HTML (testo nitido a qualsiasi zoom).
+  - `MindmapPage.tsx` non ha più la copia dei nodi per React Flow: il grafo è **derivato** da `rawNodes`, la stessa fonte del kanban. Prima erano due copie da tenere allineate a mano (per esempio eliminare un gruppo dal kanban lasciava la copia del grafo indietro).
+  - Nessuna modifica a database, IPC, export/import: **nessuna migrazione**, i dati restano compatibili in entrambe le direzioni.
+  - Peso: il chunk della pagina Mappa scende da circa **318 KB a 76 KB**. Il marchio "React Flow" nell'angolo non c'è più; rimosso anche dai crediti (pagina Info e README).
+
+- **Comportamenti riprodotti** (come prima): sfondo a puntini che segue la vista; trascinare lo sfondo per spostarsi; rotellina/pizzico del trackpad per lo zoom; comandi ingrandisci, riduci, adatta alla vista; adattamento automatico all'apertura e al cambio mappa; nodi colorati per tipo, trascinabili; click, Ctrl/Cmd+click e Maiusc+riquadro per selezionare; creazione di un collegamento trascinando da una maniglia; curve con etichetta; doppio click su nodo (modifica) e su collegamento (etichetta); Canc/Backspace per eliminare.
+
+- **Difetti corretti** (c'erano già con React Flow)
+  1. *Eliminare un collegamento con Canc non lo eliminava dal database*: spariva dalla vista e ricompariva alla riapertura, perché il codice non chiamava mai `deleteEdge`. Ora i collegamenti selezionati si eliminano davvero.
+  2. *Spostando più nodi selezionati si salvava la posizione di uno solo*: gli altri tornavano al posto vecchio alla riapertura. Ora il canvas segnala **tutti** i nodi spostati e li salva tutti. Aggiornando anche `rawNodes`, l'ordine delle colonne del kanban (che dipende da `pos_x` dei gruppi) resta coerente.
+  3. *Collegare due nodi già collegati creava un duplicato nel database* (non c'è un vincolo di unicità), nascosto nella vista finché non si riapriva la mappa. Ora il duplicato nello stesso verso non viene creato; il verso opposto resta ammesso. Un nodo non si collega a se stesso.
+  - *Duplicati già presenti*: non vengono rimossi automaticamente; compaiono come curve sovrapposte e si eliminano selezionandone una. *Proposta, non realizzata*: una pulizia automatica una tantum.
+
+- **Differenze rispetto a prima (da conoscere, tutte modificabili)**
+  - Il riquadro di selezione (Maiusc+trascina) prende i nodi **interamente** dentro; `boxesInRect` ha già anche la modalità "anche solo sfiorati" (una riga da cambiare). *Da confermare con la checklist: è la mia lettura del comportamento precedente, non l'ho potuto provare.*
+  - Un collegamento si crea rilasciando su **qualsiasi punto** del nodo di destinazione, non solo sulla maniglia. Dalla maniglia in basso si va verso un altro nodo; dalla maniglia in alto il verso si inverte.
+  - Il nodo selezionato ha un contorno azzurro (prima uno scuro e sottile); il bersaglio di un collegamento in corso uno verde. Il tratto del collegamento selezionato è azzurro.
+  - **Non riprodotti**: il pulsante di blocco dell'interattività che React Flow aggiungeva ai comandi, lo zoom con due dita su schermo tattile (il pizzico del trackpad funziona), lo spostamento dei nodi con Tab e frecce da tastiera.
+  - Canc/Backspace ora non agisce mentre una finestra di dialogo è aperta né mentre si scrive in un campo.
+
+- **Test (da 583 a 642)**
+  - `graph-geometry` e `graph-interaction`: 50 test sulla logica pura (zoom ancorato, adattamento, curve, riquadro, selezione, collegamenti validi, piano di eliminazione, spostamento multiplo, soglia di trascinamento), con regressioni esplicite dei tre difetti.
+  - `graph-canvas-render`: disegna il componente in Node su dati reali (nodi, curve, etichette, collegamenti orfani, 300 nodi).
+  - `no-reactflow`: fallisce se la libreria riappare in `package.json`, nel lockfile o in un import (verificato aggiungendo un import).
+  - **Non coperti da test automatici**: i gesti veri del mouse (pan, trascinamento, collegamento, rotellina), che richiederebbero una finestra. Per questo la checklist qui sotto è parte della consegna.
+
+- **Checklist manuale (da eseguire prima di adottare la versione)**
+  1. Apri una mappa con più nodi: la vista si adatta; cambia mappa: si adatta di nuovo; aggiungere un nodo NON deve spostare la vista.
+  2. Trascina lo sfondo; ruota la rotellina sopra un nodo (deve restare fermo sotto il cursore); prova `+`, `−`, adatta; verifica i limiti di zoom.
+  3. Sposta un nodo, esci e riapri la mappa: la posizione resta.
+  4. Seleziona più nodi (Ctrl/Cmd+click e Maiusc+riquadro), spostali insieme, riapri la mappa: **restano tutti** dove li hai messi.
+  5. Collega due nodi dalla maniglia in basso; ripeti sugli stessi due: non deve nascere un secondo collegamento. Prova dalla maniglia in alto (verso inverso) e su se stesso (nulla).
+  6. Doppio click su un nodo (modifica) e su un collegamento o sulla sua etichetta (etichetta).
+  7. Seleziona un collegamento, premi Canc, riapri la mappa: **non ricompare**. Seleziona un nodo e premi Canc: sparisce con i suoi collegamenti.
+  8. Con una finestra aperta o scrivendo in un campo, Canc non deve eliminare nulla nel grafo.
+  9. Nel kanban elimina un gruppo, torna al grafo: il gruppo e i suoi collegamenti sono spariti.
+  10. Sposta un gruppo nel grafo e passa al kanban: l'ordine delle colonne segue la posizione.
+  11. Tema scuro: comandi di zoom ed etichette leggibili. Mappa con un centinaio di nodi: pan e zoom fluidi.
+
+## 0.4.3
+Correzione urgente del salvataggio delle scene. Nessuna funzione nuova.
+
+- **Salvataggio automatico: il testo tornava a "Salva" e non veniva scritto**
+  - *Sintomo*: scrivendo in una scena il pulsante lampeggiava ("Salvataggio…") e tornava a "Salva", mentre la data di salvataggio restava ferma.
+  - *Causa del difetto*: dalla 0.3.9 l'editor invia la posizione del cursore (`cursor_position`) insieme al testo a **ogni** salvataggio, ma l'elenco delle colonne che il repository dei documenti accetta in aggiornamento non la includeva: il main rispondeva "Document fields not allowed: cursor_position" e il salvataggio falliva. Il difetto è presente **anche nella 0.4.1 e nella 0.4.2** (il file del repository è identico). L'errore non compariva da nessuna parte perché l'editor rimette il testo in coda e ignora in silenzio l'errore.
+  - *Rischio*: il testo scritto restava solo in memoria e si perdeva chiudendo l'app o cambiando scena, perché anche quei salvataggi di chiusura usavano lo stesso percorso e fallivano. Se hai scritto con la 0.4.1 o la 0.4.2, il testo non salvato non è recuperabile dal database.
+  - *Ora*: `cursor_position` è tra le colonne ammesse, quindi testo e posizione del cursore si salvano insieme come previsto.
+  - *Perché non l'avevano trovato i test*: nessun test inviava `cursor_position`. Anche l'analisi che ha preceduto la 0.4.2 non ha provato il salvataggio con il carico reale dell'editor.
+
+- **Test (da 575 a 583)**
+  - Salvataggio con il carico reale dell'editor (testo + cursore), con il solo cursore e con tutti i contenuti dei manuali inclusi nell'app.
+  - **Contratto schema ⇄ colonne**: per documenti, eventi della timeline e nodi della mappa, ogni campo che lo schema accetta deve essere ammesso dal repository, e ogni colonna ammessa deve esistere nella tabella. Un campo accettato ma poi rifiutato (il difetto qui sopra) non può più passare inosservato. Timeline e mappa concettuale risultavano già allineate.
+  - Verificato che i test **falliscono** senza la correzione (4 su 8) e passano con essa.
+  - Le tre liste di colonne sono ora esportate dai rispettivi file, solo per poterle verificare dai test.
+
+- **Proposta, non realizzata (da decidere insieme)**: far comparire lo stato **"Errore di salvataggio"** nel pulsante (e un messaggio) quando un salvataggio fallisce, invece di tornare silenziosamente a "Salva". Con quell'indicazione il difetto sarebbe stato visibile subito. Richiede una nuova chiave di traduzione e una modifica dell'editor.
+
+## 0.4.2
+Correzioni di sei difetti emersi dall'analisi del codice, più i test che mancavano. Nessuna funzione nuova. Le scelte non esplicitate nella richiesta sono segnalate come *Scelta da confermare*.
+
+- **Chiusura dell'app: la nota "To Do" non si perde più**
+  - *Causa del difetto*: alla chiusura la finestra veniva trattenuta per mostrare il prompt, ma un timer fisso di 5 secondi la chiudeva comunque. Chi stava ancora scrivendo la nota la perdeva, senza avviso.
+  - *Ora*: il prompt resta aperto **senza limite di tempo**. Il renderer risponde subito con una "presa in carico"; solo se non risponde entro 3 secondi (finestra non caricata o bloccata) la chiusura viene forzata, così l'app non può restare impossibile da chiudere. Un secondo clic sulla X mentre il prompt è aperto non chiude e non lo duplica: riporta la finestra in primo piano.
+  - *Scelta da confermare*: il prompt ha ora il pulsante **Annulla** (o tasto Esc): la finestra resta aperta, la nota non viene toccata. Vale anche per "Esci dal progetto", dove annulla l'uscita. La logica sta in un modulo a parte (`quit-coordinator.ts`) per poterla testare.
+
+- **Ripristino di un backup: non si resta più senza database**
+  - *Causa del difetto*: i file del database attuale venivano cancellati **prima** di copiare il backup. Un errore a metà (disco pieno, file bloccato) lasciava l'app senza database. Inoltre l'app chiudeva il database **prima** di controllare il backup: scegliere un file non valido mostrava l'errore ma lasciava l'app inutilizzabile.
+  - *Ora*: (1) il backup si controlla prima di toccare qualsiasi cosa; (2) si copia in un file temporaneo e si ricontrolla la copia; (3) il database attuale non si cancella ma si rinomina in `<database>.pre-restore`; (4) il temporaneo prende il suo posto. Se un passo fallisce, tutto torna com'era e l'app si riavvia sul database di prima. Un backup creato da una **versione più recente** di MyBook viene rifiutato con un messaggio chiaro.
+  - *Scelta da confermare*: la copia di sicurezza `.pre-restore` resta su disco (una sola, sovrascritta al ripristino successivo, nella stessa cartella del database). Occupa spazio ma è l'unico modo per tornare indietro dopo un ripristino fatto per sbaglio. Alternativa: eliminarla dopo il primo avvio riuscito.
+
+- **macOS: l'app non si rompe più riaprendo la finestra dal Dock**
+  - *Causa del difetto*: su macOS chiudere l'ultima finestra lascia l'app viva, ma il database veniva chiuso: la finestra riaperta trovava una connessione chiusa e ogni operazione falliva.
+  - *Ora*: il database si chiude solo quando l'app termina davvero (evento `will-quit`). Il backup "alla chiusura" si fa alla chiusura dell'ultima finestra su macOS e alla terminazione su tutte le piattaforme, compreso **Cmd+Q**, che prima lo saltava. Non si fanno due backup identici di seguito.
+  - *Non verificato su un Mac reale*: la correzione segue il comportamento documentato di Electron e va provata (vedi elenco in fondo).
+
+- **Conteggio parole e caratteri: niente più parole in più**
+  - *Causa del difetto*: i frammenti di testo di uno stesso paragrafo venivano uniti con uno spazio. Ogni cambio di formattazione (grassetto, tag di un personaggio, commento) creava una parola in più: "**Marco**, disse" contava 3 parole (la virgola era "una parola"), "per**ché**" ne contava 2. Colpiva albero del manoscritto, totali di progetto, Statistiche e revisioni. L'editor mostrava un numero mentre scriveva e un altro dopo il salvataggio, perché le due strade usavano regole diverse.
+  - *Ora*: **una sola regola** (`shared/textAnalysis.ts`) usata da salvataggio, scheda Analisi, editor in tempo reale, anteprime di ricerca e import: frammenti dello stesso blocco concatenati senza spazio; a capo forzati, immagini ed elementi di elenco separano le parole.
+  - Migrazione **027** (nessuna modifica allo schema): all'aggiornamento ricalcola **una volta** i conteggi già salvati, di scene **e revisioni** (così la differenza di parole tra revisioni non mostra un salto fittizio). Atomica e ripetibile.
+  - *Cosa vedrai*: i totali **scendono** rispetto alla 0.4.1, in misura dipendente da quanta formattazione e quanti tag usi. È la correzione, non una perdita di testo.
+  - L'import di un progetto ricalcola i conteggi dal contenuto: i file esportati con la 0.4.1 (valori gonfiati) non li reimportano.
+  - *Test modificato*: `extractParagraphs unisce con uno spazio i nodi di testo…` pretendeva proprio il comportamento errato; è stato sostituito da quattro test che descrivono la regola corretta.
+  - *Scelta da confermare*: i caratteri contano gli spazi **normalizzati** (spazi doppi ridotti a uno), come già faceva la scheda Analisi; quindi `char_count` può differire di poco dal numero di battute digitate se si scrivono spazi doppi.
+
+- **Immagini: il renderer non può più leggere file qualsiasi**
+  - *Causa del difetto*: il canale di lettura delle immagini accettava **qualunque percorso** e restituiva il file in base64: una chiave SSH o un documento personale, se un'immagine malevola o un pacchetto importato avesse indicato quel percorso.
+  - *Ora*: si legge solo un file con estensione da immagine (PNG, JPG, GIF, WebP), **dentro la cartella media dell'app** (collegamenti simbolici e `..` risolti prima del controllo) e non oltre 25 MB. In ogni altro caso il risultato è "nessuna immagine", come per un file mancante. L'importazione controlla estensione e dimensione. Il payload IPC è validato.
+  - *Effetto da conoscere*: un progetto con immagini i cui percorsi puntano **fuori** dalla cartella media (per esempio un database di produzione ripristinato in modalità sviluppo, che usa un'altra cartella dati) mostrerà il segnaposto invece dell'immagine. Il problema di fondo (le immagini non sono incluse in backup ed esportazioni) resta e verrà affrontato in una versione successiva.
+
+- **Link esterni: una sola regola, e la finestra non naviga più altrove**
+  - *Causa del difetto*: l'apertura di finestre dal contenuto passava **qualsiasi** URL al sistema operativo, che può avviare applicazioni; il canale IPC invece filtrava. Mancava il blocco della navigazione della finestra.
+  - *Ora*: `http`, `https` e `mailto` ovunque (`security/external-url.ts`); tutto il resto è ignorato. La finestra dell'app non può più navigare verso siti o file locali: i link web si aprono nel browser di sistema. Ricarica e navigazione interna funzionano come prima.
+  - Il commento del codice diceva "solo http/https" ma `mailto` era ammesso: ora codice e commento coincidono. `tel:` resta accettato come testo di un link nell'editor ma non viene lanciato.
+
+- **Test (da 483 a 575)**
+  - Nuovi: coordinatore di chiusura (compresa la regressione dei 5 secondi), regole sugli URL, controllo dei percorsi, servizio media (percorsi esterni, `..`, collegamenti simbolici, dimensioni), manutenzione del database (stato, svuotamento, validazione, ripristino con **guasti simulati**: copia che fallisce, sostituzione che fallisce a metà con rollback), conteggio parole (con tag, grassetto, elenchi, a capo), coerenza con la scheda Analisi, ricalcolo e migrazione 027, import che ricalcola.
+  - **Coerenza versione**: un test fa fallire la suite se la versione di `package.json`, del pacchetto di esportazione, del `package-lock.json` e della prima voce di questo changelog non coincidono.
+  - *Il test del ricalcolo ha scoperto un errore nella prima stesura della correzione* (`iterate()` e `UPDATE` sulla stessa connessione non sono ammessi da better-sqlite3 e il ricalcolo all'avvio sarebbe fallito): corretto prima del rilascio.
+  - *Non coperto da test automatici*: il lato interfaccia (prompt To Do, Annulla) e il comportamento di Electron su macOS. La suite gira in Node senza finestre. Verifiche manuali consigliate: chiusura con prompt aperto oltre 5 secondi; Annulla ed Esc; ripristino di un backup valido, di un file non valido e di uno più recente; riapertura da Dock su macOS dopo aver chiuso la finestra.
+
+## 0.4.1
+Sette modifiche richieste. Le scelte non esplicitate nella richiesta sono segnalate come *Scelta da confermare*.
+
+- **Backup: richiesta della cartella al primo avvio**
+  - Se non è definita una cartella di backup, all'avvio compare una finestra che spiega perché e permette di sceglierla subito (o "Più tardi"). Scegliendola, se i backup erano su "Disattivato" passano a "Alla chiusura dell'app": chi sceglie una cartella vuole che i backup partano; qualunque frequenza già scelta si rispetta.
+  - *Scelta da confermare*: compare **una sola volta** (flag `backup_prompt_shown`, segnato appena la finestra appare, quindi non ricompare nemmeno se l'app viene chiusa senza rispondere). Vale **anche per chi aggiorna** da una versione precedente e non ha mai scelto una cartella. Chi la rimanda la ritrova in Impostazioni > Generale > Backup. Alternativa possibile: riproporla a ogni avvio finché non è impostata (più sicura, più invadente).
+
+- **Mappa concettuale — etichetta dei collegamenti**
+  - Doppio click su un collegamento apre una finestra per aggiungere, modificare o **togliere** l'etichetta (campo vuoto = nessuna etichetta). È una finestra dedicata e non il campo di testo generico, perché quello non distingue "Annulla" da "vuoto" e non permetterebbe di cancellare un'etichetta.
+  - La modifica compare nel registro attività ("Modificato Collegamento"), solo se l'etichetta cambia davvero. Il suggerimento sul grafo è aggiornato.
+
+- **Mappa concettuale — descrizione copiata dalla scheda**
+  - Creando un nodo Personaggio, Località, Oggetto o Evento, scegliendo la scheda la sua descrizione viene copiata nel campo descrizione del nodo, modificabile prima di aggiungere.
+  - *Scelta da confermare*: è una **copia al momento della creazione**, non un collegamento vivo: cambiarla dopo, da una parte o dall'altra, non tocca l'altra. Se l'utente ha già scritto qualcosa nel campo, scegliere un'altra scheda non lo sovrascrive. Capitoli e scene non copiano la descrizione (non richiesto).
+
+- **Mappa concettuale — link alla scheda in "Modifica nodo"**
+  - Per i nodi collegati a un Personaggio, una Località, un Oggetto o un Evento compare "Apri la scheda collegata (…)": apre la pagina corrispondente con l'elemento già selezionato (stesso meccanismo dei tag dell'editor). Per note libere, gruppi, capitoli e scene non compare.
+
+- **Mappa concettuale, kanban — riordino delle card e rilascio ovunque nel gruppo**
+  - *Causa del difetto*: il rilevamento del bersaglio usava "il centro più vicino" fra tutti gli elementi trascinabili, quindi vicino ai bordi del gruppo vinceva l'elemento sbagliato (la colonna come elemento riordinabile, che le card ignoravano) e il rilascio veniva scartato. Funzionava solo al centro.
+  - *Ora*: conta ciò che sta **sotto il puntatore**. Sopra una card → la card va **prima o dopo** di essa (secondo la metà in cui si rilascia); altrove nel gruppo → in fondo. L'**intera colonna** (intestazione, margini, spazio vuoto, colonna vuota) accetta il rilascio. Le card intorno si spostano per far posto, la colonna di destinazione si evidenzia, e rilasciare una card sul proprio posto non fa nulla (non la manda in fondo).
+  - L'ordine è **persistente**: nuova colonna `order_index` sui nodi (migrazione 026). I nodi esistenti conservano l'ordine di inserimento che si vedeva finora. Un nodo nuovo, o spostato di gruppo dalla finestra di modifica, va in coda al gruppo. Il salvataggio è una **transazione unica** con validazione (nodi e gruppo devono appartenere alla stessa mappa, nessun doppione): un errore non lascia mezze modifiche, e in tal caso l'interfaccia si riallinea al database.
+  - Duplicazione di un progetto ed esportazione/importazione ora conservano l'ordine (senza questa correzione la copia sarebbe ripartita dall'ordine di creazione). I pacchetti esportati prima della 0.4.1 si importano senza errori.
+
+- **Mappa concettuale, kanban — colore di sfondo del gruppo**
+  - Icona tavolozza nell'intestazione del gruppo (al passaggio del mouse): 8 colori predefiniti, selettore libero e "Nessun colore". Il colore è salvato nel nodo-gruppo (colonna `color`, già presente: **nessuna migrazione**).
+  - Lo sfondo è il colore scelto **con trasparenza**, così resta leggibile sia nel tema chiaro sia in quello scuro senza dover scegliere due tonalità. "Senza gruppo" non è colorabile.
+
+- **"Non mostrare più" — To Do alla chiusura e recap all'apertura**
+  - Nella finestra "Prima di chiudere" una casella "Non mostrare più": **qualunque pulsante si prema** (anche "Salta") disattiva sia quella finestra sia il recap che compare all'apertura di un progetto. Con "Salva e chiudi" la nota viene comunque salvata.
+  - In Impostazioni > Log lo stesso flag è a destra dell'intestazione "Registro attività": spuntato = nascosti. Da lì si riattiva.
+  - *Scelta da confermare*: il flag è **indipendente** da "Registra attività (Log)": il registro continua a registrare, e spegnerlo o riaccenderlo non tocca il flag. Con il registro spento, To Do e recap restano comunque nascosti, come prima. Il testo di un To Do già scritto non viene cancellato: resta salvato e ricompare riattivando il flag.
+  - Correzione collaterale: il recap ora aspetta il caricamento delle impostazioni prima di decidere, e si valuta all'apertura di ogni progetto (uscire e rientrare nello stesso progetto lo ripropone, come prima).
+
+- **Dati**: migrazione `026_mindmap_order_and_prompt_flags.sql` — `mindmap_nodes.order_index` (con riempimento dell'ordine esistente), `app_settings.backup_prompt_shown` (default 0) e `app_settings.todo_recap_enabled` (default 1). Additiva: nessun dato esistente viene modificato.
+- **Test**: da 413 a **483**. Nuovi: riordino del kanban (tutti i casi: stessa colonna su/giù, fra colonne, colonna vuota, rilascio su se stessa, spazio vuoto), servizio della mappa (ordine, transazione, validazioni, etichetta archi), migrazione 026 su un database 0.4.0, conservazione dell'ordine in duplicazione e import/export, regole dei flag (To Do/recap/backup), colori, link alle schede, persistenza dei nuovi flag. I test sull'italiano cablato e sulle chiavi i18n coprono anche i nuovi testi (≈ 560 chiavi). `tsc` main pulito; renderer solo gli errori `TS7006` preesistenti (8). `electron-vite build` riesce.
+- *Non verificabile in questo ambiente*: l'app Electron non può essere avviata qui, quindi **il trascinamento vero con il mouse non è provato**. La logica di riordino e il salvataggio sono coperti dai test; il rilevamento delle collisioni e la resa grafica vanno controllati sulla tua macchina. Prove consigliate: (1) trascinare una card sopra/sotto un'altra nello stesso gruppo e rilasciare vicino al bordo; (2) trascinarla in un gruppo vuoto e su "Senza gruppo"; (3) riordinare, cambiare mappa e tornare: l'ordine resta; (4) doppio click su un collegamento, scrivere, svuotare; (5) creare un nodo Personaggio e controllare la descrizione; (6) "Apri la scheda collegata"; (7) colore del gruppo in tema chiaro e scuro; (8) spuntare "Non mostrare più" in chiusura e riaprire il progetto; (9) primo avvio con un database nuovo per la finestra del backup.
+
 ## 0.4.0
 Tre modifiche consistenti, concordate prima di scrivere codice (soluzione e scelte discusse; "Lingua del libro" aggiunta su richiesta). Per ciascuna: cosa cambia e perché.
 

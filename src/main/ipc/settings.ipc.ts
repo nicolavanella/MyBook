@@ -1,6 +1,6 @@
 import { app, ipcMain, dialog, BrowserWindow, session } from 'electron'
-import { getDb, getDbPath, closeDb } from '../database/db'
-import { clearDatabase, getDatabaseStatus, replaceDatabaseFile, resetDatabaseFile } from '../database/database-maintenance'
+import { getDb, getDbPath, closeDb, getSupportedSchemaVersion } from '../database/db'
+import { clearDatabase, getDatabaseStatus, replaceDatabaseFile, resetDatabaseFile, validateBackup } from '../database/database-maintenance'
 import { IpcChannels } from '@shared/ipc/channels'
 import { UpdateAppSettingsInput } from '@shared/schemas/settings.schema'
 import type { SettingsService } from '../services/settings.service'
@@ -106,8 +106,20 @@ export function registerSettingsIpc(service: SettingsService): void {
   ipcMain.handle(IpcChannels.settings.loadDatabaseBackup, (_e, raw: unknown) => {
     if (typeof raw !== 'string' || !raw.trim()) throw new Error(tm('backup.invalidPath'))
     const dbPath = getDbPath()
+    const supportedVersion = getSupportedSchemaVersion()
+    // v0.4.2: il backup si valida PRIMA di chiudere il database. Fino alla 0.4.1 si chiudeva prima:
+    // un file non valido faceva comparire l'errore ma lasciava l'app con il database chiuso e
+    // inutilizzabile. Così, se il file non va bene, non è successo nulla.
+    validateBackup(raw, supportedVersion)
     closeDb()
-    replaceDatabaseFile(dbPath, raw)
+    try {
+      replaceDatabaseFile(dbPath, raw, supportedVersion)
+    } catch (error) {
+      // La sostituzione è transazionale (vedi replaceDatabaseFile): il database di prima è intatto.
+      // La connessione però è già chiusa e i repository la tengono: si riavvia sul database di prima.
+      scheduleRelaunch()
+      throw error
+    }
     scheduleRelaunch()
     return { ok: true }
   })

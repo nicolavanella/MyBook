@@ -37,7 +37,11 @@ export function buildApi(
       onQuitRequested: (listener: () => void) => on(IpcChannels.app.quitRequested, listener),
       /** Autorizza la chiusura reale della finestra, salvando prima il ToDo indicato (se un progetto è aperto). */
       confirmQuit: (payload: { projectId: string | null; todo?: string }): Promise<void> =>
-        invoke(IpcChannels.app.confirmQuit, payload)
+        invoke(IpcChannels.app.confirmQuit, payload),
+      /** v0.4.2: da chiamare SUBITO alla richiesta di chiusura. Dice al main che il renderer c'è: da quel momento attende la persona senza timeout. */
+      ackQuit: (): Promise<void> => invoke(IpcChannels.app.quitAck),
+      /** v0.4.2: la persona ha annullato la chiusura dal prompt: la finestra resta aperta. */
+      cancelQuit: (): Promise<void> => invoke(IpcChannels.app.cancelQuit)
     },
     editor: {
       /** Notifica il main quando l'editor della scena guadagna/perde il focus, per mostrare "Aggiungi commento/tag" solo lì nel menu contestuale nativo. */
@@ -190,6 +194,9 @@ export function buildApi(
       deleteNode: (id: string) => invoke(IpcChannels.mindmap.deleteNode, { id }),
       createEdge: (params: Record<string, unknown>) =>
         invoke(IpcChannels.mindmap.createEdge, params),
+      updateEdge: (id: string, fields: { label: string }) => invoke(IpcChannels.mindmap.updateEdge, { id, fields }),
+      reorderNodes: (params: { mindmapId: string; groupId: string | null; orderedIds: string[] }) =>
+        invoke(IpcChannels.mindmap.reorderNodes, params),
       deleteEdge: (id: string) => invoke(IpcChannels.mindmap.deleteEdge, { id })
     },
     statistics: {

@@ -1,6 +1,6 @@
 {
   "name": "mybook",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "MyBook — applicazione desktop per scrittura, organizzazione narrativa, worldbuilding, statistiche, versioning ed export",
   "main": "out/main/index.js",
   "author": "",
@@ -45,7 +45,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.1",
-    "reactflow": "^11.11.4",
     "uuid": "^9.0.1",
     "zod": "^3.23.8",
     "zustand": "^4.5.4"

@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import AutosizeTextarea from '@renderer/components/AutosizeTextarea'
+import { ExternalLink } from 'lucide-react'
+import type { TranslationKey } from '@shared/i18n'
 import { useTranslation } from '@renderer/i18n/useTranslation'
+
+/** Nome del tipo di scheda collegata, per il testo del link ("Apri scheda collegata (Personaggio)"). */
+const LINKED_TYPE_LABEL: Record<string, TranslationKey> = {
+  character: 'entityType.character',
+  location: 'entityType.location',
+  object: 'entityType.object',
+  event: 'entityType.event'
+}
 
 export interface EditableNode {
   id: string
@@ -8,6 +18,7 @@ export interface EditableNode {
   description: string
   node_type: string
   group_id: string | null
+  ref_id?: string | null
 }
 
 interface Props {
@@ -16,9 +27,11 @@ interface Props {
   onClose: () => void
   onSave: (label: string, description: string, groupId: string | null) => void
   onDelete: () => void
+  /** v0.4.1: presente solo se il nodo è collegato a una scheda apribile (Personaggio, Località, Oggetto, Evento). */
+  onOpenLinked?: () => void
 }
 
-export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSave, onDelete }: Props): JSX.Element {
+export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSave, onDelete, onOpenLinked }: Props): JSX.Element {
   const { t } = useTranslation()
   const [label, setLabel] = useState(node.label)
   const [description, setDescription] = useState(node.description)
@@ -40,9 +53,19 @@ export default function EditMindmapNodeModal({ node, groupOptions, onClose, onSa
           onChange={(e) => setLabel(e.target.value)}
         />
         {isEntityLinked && (
-          <p className="mb-3 text-xs text-gray-400">
+          <p className="mb-1 text-xs text-gray-400">
             {t('mindmap.linkedHint')}
           </p>
+        )}
+        {/* v0.4.1: apre la scheda collegata (la pagina dell'elemento, con l'elemento già selezionato). */}
+        {onOpenLinked && LINKED_TYPE_LABEL[node.node_type] && (
+          <button
+            type="button"
+            onClick={onOpenLinked}
+            className="mb-3 flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+          >
+            <ExternalLink size={12} /> {t('mindmap.openLinked', { type: t(LINKED_TYPE_LABEL[node.node_type]) })}
+          </button>
         )}
         {!isEntityLinked && <div className="mb-3" />}
 

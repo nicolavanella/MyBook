@@ -1,18 +1,9 @@
+import { extractParagraphs } from '@shared/textAnalysis'
+
 /** Estrae il testo semplice da un documento TipTap JSON, per la ricerca e le anteprime dei risultati. */
 export function extractPlainText(contentJson: string): string {
-  try {
-    const doc = JSON.parse(contentJson)
-    const parts: string[] = []
-    const walk = (node: any): void => {
-      if (!node) return
-      if (node.type === 'text' && typeof node.text === 'string') parts.push(node.text)
-      if (Array.isArray(node.content)) node.content.forEach(walk)
-    }
-    walk(doc)
-    return parts.join(' ')
-  } catch {
-    return ''
-  }
+  // v0.4.2: estrazione condivisa con conteggio parole e Analisi (shared/textAnalysis.ts).
+  return extractParagraphs(contentJson).join(' ')
 }
 
 /**

@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3'
 import { v4 as uuid } from 'uuid'
 import { tm } from '../../i18n'
 
-const EVENT_COLUMNS = new Set(['timeline_id','title','description','event_date','calendar_date','order_index','notes','color'])
+export const EVENT_COLUMNS: ReadonlySet<string> = new Set(['timeline_id','title','description','event_date','calendar_date','order_index','notes','color'])
 
 export class TimelineRepository {
   constructor(private db: Database.Database) {}

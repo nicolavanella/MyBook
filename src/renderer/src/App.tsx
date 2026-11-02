@@ -5,7 +5,7 @@ import { useTranslation } from './i18n/useTranslation'
 
 // Ogni pagina è nel proprio chunk: la prima finestra dell'app carica solo
 // bootstrap + editor (rotta di default), non tutte le pagine assieme
-// (React Flow per la mindmap, in particolare, pesa parecchio da sola).
+// (la mindmap e l'editor, in particolare, pesano parecchio da soli).
 const ManuscriptPage = lazy(() => import('./features/editor/ManuscriptPage'))
 const ProjectsPage = lazy(() => import('./features/projects/ProjectsPage'))
 const CharactersPage = lazy(() => import('./features/characters/CharactersPage'))

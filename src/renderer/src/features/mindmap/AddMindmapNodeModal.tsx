@@ -3,12 +3,15 @@ import AutosizeTextarea from '@renderer/components/AutosizeTextarea'
 import type { DocumentNode } from '@renderer/stores/useProjectStore'
 import type { TranslationKey } from '@shared/i18n'
 import { useTranslation } from '@renderer/i18n/useTranslation'
+import { DESCRIPTION_COPY_TYPES } from '@renderer/lib/mindmapLinks'
 
 export type MindmapNodeType = 'free_note' | 'character' | 'location' | 'object' | 'event' | 'chapter' | 'scene'
 
 export interface EntityOption {
   id: string
   label: string
+  /** Descrizione della scheda (solo per Personaggio, Località, Oggetto, Evento): viene copiata nel nodo (v0.4.1). */
+  description?: string
 }
 
 const TYPE_LABELS: Record<MindmapNodeType, TranslationKey> = {
@@ -32,6 +35,8 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
   const [nodeType, setNodeType] = useState<MindmapNodeType>('free_note')
   const [freeLabel, setFreeLabel] = useState('')
   const [description, setDescription] = useState('')
+  // v0.4.1: finché l'utente non scrive nella descrizione, questa segue la scheda scelta; dopo, non si tocca più.
+  const [descriptionTouched, setDescriptionTouched] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState('')
   const [characters, setCharacters] = useState<EntityOption[]>([])
   const [locations, setLocations] = useState<EntityOption[]>([])
@@ -42,16 +47,16 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
 
   useEffect(() => {
     window.mybook.characters.list(projectId).then((rows: any[]) =>
-      setCharacters(rows.map((r) => ({ id: r.id, label: r.name })))
+      setCharacters(rows.map((r) => ({ id: r.id, label: r.name, description: r.description ?? '' })))
     )
     window.mybook.locations.list(projectId).then((rows: any[]) =>
-      setLocations(rows.map((r) => ({ id: r.id, label: r.name })))
+      setLocations(rows.map((r) => ({ id: r.id, label: r.name, description: r.description ?? '' })))
     )
     window.mybook.objects.list(projectId).then((rows: any[]) =>
-      setObjects(rows.map((r) => ({ id: r.id, label: r.name })))
+      setObjects(rows.map((r) => ({ id: r.id, label: r.name, description: r.description ?? '' })))
     )
     window.mybook.timelineEvents.listAllForProject(projectId).then((rows: any[]) =>
-      setEvents(rows.map((r) => ({ id: r.id, label: r.title })))
+      setEvents(rows.map((r) => ({ id: r.id, label: r.title, description: r.description ?? '' })))
     )
     window.mybook.documents.tree(projectId).then((rows: DocumentNode[]) => {
       setChapters(
@@ -87,6 +92,20 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
               : []
 
   const isFree = nodeType === 'free_note'
+  const copiesDescription = DESCRIPTION_COPY_TYPES.has(nodeType)
+
+  /**
+   * v0.4.1 — scegliendo una scheda (Personaggio, Località, Oggetto, Evento) la sua descrizione
+   * viene COPIATA nel campo descrizione del nodo, modificabile prima di aggiungere. È una copia al
+   * momento della creazione, non un collegamento vivo: cambiarla dopo, da una parte o dall'altra,
+   * non tocca l'altra.
+   */
+  const handleSelectEntity = (id: string) => {
+    setSelectedEntityId(id)
+    if (!descriptionTouched && copiesDescription) {
+      setDescription(entityListForType.find((e) => e.id === id)?.description ?? '')
+    }
+  }
   const canSubmit = isFree ? freeLabel.trim().length > 0 : selectedEntityId.length > 0
 
   const handleSubmit = () => {
@@ -115,6 +134,8 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
           onChange={(e) => {
             setNodeType(e.target.value as MindmapNodeType)
             setSelectedEntityId('')
+            // La descrizione copiata apparteneva alla scheda precedente: si azzera, a meno che l'utente l'abbia scritta lui.
+            if (!descriptionTouched) setDescription('')
           }}
         >
           {Object.entries(TYPE_LABELS).map(([value, labelKey]) => (
@@ -150,7 +171,7 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
                 autoFocus
                 className="mb-4 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
                 value={selectedEntityId}
-                onChange={(e) => setSelectedEntityId(e.target.value)}
+                onChange={(e) => handleSelectEntity(e.target.value)}
               >
                 <option value="" disabled>
                   {t('mindmap.choose')}
@@ -170,9 +191,13 @@ export default function AddMindmapNodeModal({ projectId, onClose, onCreate }: Pr
           rows={2}
           className="mb-4 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            setDescription(e.target.value)
+            setDescriptionTouched(true)
+          }}
           placeholder={t('mindmap.descriptionPlaceholder')}
         />
+        {copiesDescription && <p className="-mt-3 mb-4 text-xs text-gray-400">{t('mindmap.descriptionCopiedHint')}</p>}
 
         <div className="flex justify-end gap-2">
           <button

@@ -5,7 +5,7 @@ import type Database from 'better-sqlite3'
  * impostazioni con pochi campi noti a priori non giustifica una tabella
  * key/value generica come project_settings.
  */
-const ALLOWED_KEYS = new Set(['theme','language','backup_enabled','backup_folder','backup_frequency','backup_max_count','editor_font_size','ui_font_size','spellcheck_enabled','editor_toolbar_tools','sidebar_visible_tools','dictionary_file','dictionary_languages','tags_enabled','comments_enabled','revisions_enabled','activity_log_enabled','editor_bg_light','editor_text_light','editor_bg_dark','editor_text_dark','editor_shortcuts'])
+const ALLOWED_KEYS = new Set(['theme','language','backup_enabled','backup_folder','backup_frequency','backup_max_count','editor_font_size','ui_font_size','spellcheck_enabled','editor_toolbar_tools','sidebar_visible_tools','dictionary_file','dictionary_languages','tags_enabled','comments_enabled','revisions_enabled','activity_log_enabled','editor_bg_light','editor_text_light','editor_bg_dark','editor_text_dark','editor_shortcuts','backup_prompt_shown','todo_recap_enabled'])
 
 export class SettingsRepository {
   private readonly stmtGet: Database.Statement

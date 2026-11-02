@@ -347,6 +347,7 @@ export const en: Record<keyof typeof it, string> = {
   'settings.db.confirmClearLabel': 'Clear database',
   'settings.db.confirmReset': 'Fully reset the database? All projects and settings will be deleted.',
   'settings.db.confirmLoad': 'Load this database? The current database will be replaced and the app will restart.',
+  'settings.log.hideRecapHint': 'Hides the To Do prompt when a project closes and the recap when it opens. The log keeps recording.',
 
   // ── chapters ────────────────────────────────────────────────────
   'chapters.locked': 'Chapter locked',
@@ -468,7 +469,10 @@ export const en: Record<keyof typeof it, string> = {
   'mindmap.viewGraph': 'Graph view',
   'mindmap.addGroup': '+ Group',
   'mindmap.addNode': '+ Add node',
-  'mindmap.hint': 'Drag to connect · double-click to edit · Del to delete',
+  'mindmap.hint': 'Drag to connect · double-click a node to edit it, a link to set its label · Del to delete',
+  'mindmap.zoomIn': 'Zoom in',
+  'mindmap.zoomOut': 'Zoom out',
+  'mindmap.fitView': 'Fit view',
   'mindmap.expandColumn': 'Expand column',
   'mindmap.collapseColumn': 'Collapse column',
   'mindmap.dropHere': 'Drag a node here',
@@ -492,6 +496,14 @@ export const en: Record<keyof typeof it, string> = {
   'mindmap.noneOption': '— none —',
   'mindmap.deleteNode': 'Delete node',
   'mindmap.mainName': 'Main map',
+  'mindmap.descriptionCopiedHint': 'The card’s description is copied here: you can edit it without changing the card.',
+  'mindmap.openLinked': 'Open the linked card ({type})',
+  'mindmap.edge.title': 'Link label',
+  'mindmap.edge.placeholder': 'E.g. is friends with, lives in…',
+  'mindmap.edge.hint': 'Leave empty to remove the label.',
+  'mindmap.groupColor': 'Group color',
+  'mindmap.groupColorCustom': 'Custom',
+  'mindmap.groupColorNone': 'No color',
 
   // ── statistics ──────────────────────────────────────────────────
   'statistics.tab.main': 'Main',
@@ -562,6 +574,8 @@ export const en: Record<keyof typeof it, string> = {
   'todo.placeholder': 'E.g. Review the dialogue in chapter 4, fix the timeline…',
   'todo.skip': 'Skip',
   'todo.saveAndClose': 'Save and close',
+  'todo.dontShowAgain': 'Don’t show again',
+  'todo.dontShowAgainHint': 'Turns off this window and the recap (with the To Do) when a project opens. You can turn it back on in Settings > Log.',
 
   // ── tagPicker ───────────────────────────────────────────────────
   'tagPicker.title': 'Tag: {type}',
@@ -617,6 +631,10 @@ export const en: Record<keyof typeof it, string> = {
   'maintenance.integrityFailed': 'The backup database fails the integrity check.',
   'maintenance.notMyBookDb': 'The selected file is not a valid MyBook database.',
   'maintenance.sameAsActive': 'The selected backup is the active database.',
+  'media.unsupportedType': 'The selected file is not a supported image (PNG, JPG, GIF or WebP).',
+  'media.tooLarge': 'The image exceeds the maximum allowed size ({maxMb} MB).',
+  'maintenance.backupTooNew': 'The backup was created by a newer version of MyBook: update the app before restoring it.',
+  'maintenance.restoreFailed': 'Restore failed: the current database was left untouched. Details: {detail}',
 
   // ── backup ──────────────────────────────────────────────────────
   'backup.noFolder': 'No backup folder configured.',
@@ -630,5 +648,12 @@ export const en: Record<keyof typeof it, string> = {
   'dialog.mybookProject': 'MyBook project',
   'dialog.images': 'Images',
   'dialog.defaultProjectFileName': 'project',
-  'dialog.invalidJson': 'The selected file is not valid JSON.'
+  'dialog.invalidJson': 'The selected file is not valid JSON.',
+
+  // ── backupSetup ─────────────────────────────────────────────────
+  'backupSetup.title': 'Where do you want to save your backups?',
+  'backupSetup.description': 'MyBook doesn’t have a backup folder yet. Pick one to protect your work: safety copies will be made automatically when the app closes.',
+  'backupSetup.hint': 'Ideally a folder on another drive or on a sync service. You can change it at any time in Settings > General > Backup.',
+  'backupSetup.later': 'Later',
+  'backupSetup.choose': 'Choose folder…'
 }

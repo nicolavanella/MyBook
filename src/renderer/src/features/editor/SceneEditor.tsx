@@ -28,6 +28,7 @@ import { ConfigurableShortcuts, configureShortcuts } from './extensions/shortcut
 import FindReplaceDialog, { type FindRequest } from './FindReplaceDialog'
 import LinkModal from './LinkModal'
 import { runEditorAction, type EditorActionHandlers } from './editorActions'
+import { countWordsAndChars } from '@shared/textAnalysis'
 import { useTranslation } from '@renderer/i18n/useTranslation'
 import { IS_MAC } from '@renderer/lib/platform'
 import { buildShortcutLookup, eventToShortcut, VIEW_ONLY_ACTIONS } from '@shared/shortcuts'
@@ -73,26 +74,6 @@ interface Revision {
   word_count: number
   char_count: number
   created_at: string
-}
-
-/** Conteggio parole/caratteri dal testo puro dell'editor, per feedback immediato mentre si digita (non dipende dal round-trip di salvataggio). */
-function countWordsAndChars(text: string): { words: number; chars: number } {
-  const trimmed = text.trim()
-  return {
-    words: trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length,
-    chars: text.length
-  }
-}
-
-function extractEditorText(content: unknown): string {
-  const parts: string[] = []
-  const walk = (node: any): void => {
-    if (!node) return
-    if (node.type === 'text' && typeof node.text === 'string') parts.push(node.text)
-    if (Array.isArray(node.content)) node.content.forEach(walk)
-  }
-  walk(content)
-  return parts.join(' ')
 }
 
 function formatTimestamp(date: Date, locale: string): string {
@@ -238,8 +219,8 @@ export default function SceneEditor(): JSX.Element {
       content,
       ...(cursorPosition !== undefined ? { cursor_position: cursorPosition } : {})
     }).then(() => {
-      const text = extractEditorText(safeParse(content))
-      const { words, chars } = countWordsAndChars(text)
+      // v0.4.2: stessa regola del salvataggio nel main (shared/textAnalysis.ts)
+      const { words, chars } = countWordsAndChars(content)
       patchNodeLocally(nodeId, {
         content,
         word_count: words,
@@ -372,7 +353,7 @@ export default function SceneEditor(): JSX.Element {
       pendingContentRef.current.set(nodeId, json)
       pendingCursorRef.current.set(nodeId, editor.state.selection.to)
       setSaveState('pending')
-      setLiveCounts(countWordsAndChars(editor.getText()))
+      setLiveCounts(countWordsAndChars(editor.getJSON()))
 
       const oldAutosave = autosaveTimersRef.current.get(nodeId)
       if (oldAutosave) clearTimeout(oldAutosave)
@@ -592,7 +573,7 @@ export default function SceneEditor(): JSX.Element {
       editorDocumentIdRef.current = activeNode.id
       setSaveState('saved')
       setLastSavedAt(activeNode.updated_at ? new Date(activeNode.updated_at) : null)
-      setLiveCounts(countWordsAndChars(editor.getText()))
+      setLiveCounts(countWordsAndChars(editor.getJSON()))
       setShowRevisions(false)
       lastRevisionContentRef.current = activeNode.content
       if (activeNode.id) {

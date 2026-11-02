@@ -1,0 +1,12 @@
+-- MyBook — 027_recount_words.sql (v0.4.2)
+-- Nessuna modifica allo schema: questa migrazione è un SEGNAPOSTO che fa
+-- ricalcolare UNA volta word_count/char_count di scene e revisioni già
+-- salvate (vedi recountWordsAndChars in migrations/recount-words.ts, lanciato
+-- da db.ts solo quando questa versione viene applicata per la prima volta).
+-- Motivo: fino alla 0.4.1 il conteggio contava una parola in più ogni volta
+-- che la formattazione (grassetto, tag, commento) spezzava il testo in più
+-- nodi, e la punteggiatura attaccata a un testo formattato contava come
+-- parola. I valori già salvati restavano quindi gonfiati finché la scena non
+-- veniva riscritta. Le migrazioni di questo progetto sono SQL puri: la
+-- logica di ricalcolo sta in TypeScript, come per scene_tags (019).
+SELECT 1;

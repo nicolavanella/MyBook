@@ -54,3 +54,16 @@ export function runMigrations(db: Database.Database, migrationsDir: string): num
   }
   return newlyApplied
 }
+
+/**
+ * Numero della migrazione più recente presente nella cartella (0 se vuota).
+ * Serve a rifiutare il ripristino di un backup creato da una versione PIÙ
+ * RECENTE dell'app: il suo schema contiene migrazioni che questa versione
+ * non conosce, e usarlo darebbe errori imprevedibili o perdita di dati.
+ */
+export function getLatestMigrationVersion(migrationsDir: string): number {
+  return fs
+    .readdirSync(migrationsDir)
+    .filter((f) => /^\d+_.+\.sql$/.test(f))
+    .reduce((max, f) => Math.max(max, parseInt(f.split('_')[0], 10)), 0)
+}

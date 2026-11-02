@@ -9,7 +9,16 @@ import type { DocumentNode } from '@shared/schemas/document.schema'
  * dato che in pratica i patch tipici (autosave: {content}, title: {title})
  * si ripetono sempre con le stesse chiavi.
  */
-const DOCUMENT_UPDATE_COLUMNS = new Set(['title','subtitle','description','notes','status','order_index','parent_id','content','word_count','char_count','locked'])
+/**
+ * Colonne che `update` accetta. v0.4.2: aggiunta 'cursor_position', che mancava.
+ * L'editor la invia insieme al testo a OGNI salvataggio (dalla 0.3.9, colonna
+ * della migrazione 021); la lista la rifiutava ("Document fields not allowed")
+ * e il salvataggio falliva ogni volta, con il pulsante che tornava a "Salva" e
+ * la data di salvataggio ferma. Esportata perché un test verifica che ogni
+ * campo ammesso dallo schema UpdateDocumentNodeInput sia anche in questa lista:
+ * schema e lista devono restare allineati.
+ */
+export const DOCUMENT_UPDATE_COLUMNS: ReadonlySet<string> = new Set(['title','subtitle','description','notes','status','order_index','parent_id','content','word_count','char_count','locked','cursor_position'])
 
 export class DocumentRepository {
   private readonly stmtTree: Database.Statement

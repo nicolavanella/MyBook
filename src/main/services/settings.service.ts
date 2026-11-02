@@ -55,6 +55,12 @@ export class SettingsService {
     if (typeof input.activity_log_enabled === 'boolean') {
       patch.activity_log_enabled = input.activity_log_enabled ? 1 : 0
     }
+    if (typeof input.backup_prompt_shown === 'boolean') {
+      patch.backup_prompt_shown = input.backup_prompt_shown ? 1 : 0
+    }
+    if (typeof input.todo_recap_enabled === 'boolean') {
+      patch.todo_recap_enabled = input.todo_recap_enabled ? 1 : 0
+    }
     if (input.editor_toolbar_tools) {
       patch.editor_toolbar_tools = JSON.stringify(input.editor_toolbar_tools)
     }

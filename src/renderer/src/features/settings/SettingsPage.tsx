@@ -56,10 +56,16 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
   )
 }
 
-function SectionCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }): JSX.Element {
+/** `headerRight` (v0.4.1): controllo a destra dell'intestazione della scheda (es. il flag "Non mostrare più" del Registro attività). */
+function SectionCard({ title, description, headerRight, children }: { title: string; description?: string; headerRight?: React.ReactNode; children: React.ReactNode }): JSX.Element {
   return <section className="rounded border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-    {description && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>}
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        {description && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>}
+      </div>
+      {headerRight && <div className="shrink-0">{headerRight}</div>}
+    </div>
     <div className="mt-5">{children}</div>
   </section>
 }
@@ -363,7 +369,21 @@ export default function SettingsPage(): JSX.Element {
 
       {/* v0.3.7: scheda Log spostata qui da Statistiche, tra Editor e Avanzate; il toggle "Registra attività" ora vive qui in cima, non più nella tab Editor. */}
       {activeTab === 'log' && <div className="w-full space-y-4">
-        <SectionCard title={t('settings.log.title')} description={t('settings.log.description')}>
+        <SectionCard
+          title={t('settings.log.title')}
+          description={t('settings.log.description')}
+          headerRight={
+            // v0.4.1: lo stesso flag della finestra "Prima di chiudere". Spuntato = To Do e recap nascosti (todo_recap_enabled = 0).
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300" title={t('settings.log.hideRecapHint')}>
+              <input
+                type="checkbox"
+                checked={settings.todo_recap_enabled === 0}
+                onChange={(e) => update({ todo_recap_enabled: !e.target.checked })}
+              />
+              {t('todo.dontShowAgain')}
+            </label>
+          }
+        >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('settings.log.toggle')}</div>

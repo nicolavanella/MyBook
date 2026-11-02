@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import { v4 as uuid } from 'uuid'
 import { z } from 'zod'
 import { BookLanguageSchema } from '@shared/schemas/document.schema'
+import { countWordsAndChars } from '@shared/textAnalysis'
 
 const entityList = z.array(z.record(z.unknown())).default([])
 export const ProjectPackageSchema = z.object({
@@ -31,7 +32,7 @@ export class ProjectTransferService {
     const all = (sql: string) => this.db.prepare(sql).all(projectId) as Record<string, unknown>[]
     return {
       format: 'mybook-project', version: 1, exportedAt: new Date().toISOString(),
-      application: { name: 'MyBook', version: '0.4.0' }, project,
+      application: { name: 'MyBook', version: '0.5.0' }, project,
       settings: (this.db.prepare('SELECT settings FROM project_settings WHERE project_id=?').get(projectId) as any)?.settings ?? '{}',
       data: {
         documentNodes: all('SELECT * FROM document_nodes WHERE project_id=?'),
@@ -64,7 +65,13 @@ export class ProjectTransferService {
       this.db.prepare('INSERT INTO project_settings (project_id,settings) VALUES (?,?)').run(newProjectId, pack.settings)
 
       const insNode = this.db.prepare('INSERT INTO document_nodes (id,project_id,parent_id,node_type,title,subtitle,description,notes,status,order_index,content,word_count,char_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      for (const r of d.documentNodes) insNode.run(id(nodes,r.id),newProjectId,null,get(r,'node_type','scene'),get(r,'title'),get(r,'subtitle'),get(r,'description'),get(r,'notes'),get(r,'status','idea'),get(r,'order_index',0),get(r,'content','{}'),get(r,'word_count',0),get(r,'char_count',0))
+      for (const r of d.documentNodes) {
+        // v0.4.2: i conteggi si ricalcolano dal contenuto, non si fidano del pacchetto (i file esportati
+        // fino alla 0.4.1 contengono valori gonfiati, e un file manipolato potrebbe dichiararne di falsi).
+        const content = get(r,'content','{}')
+        const counts = countWordsAndChars(typeof content === 'string' ? content : null)
+        insNode.run(id(nodes,r.id),newProjectId,null,get(r,'node_type','scene'),get(r,'title'),get(r,'subtitle'),get(r,'description'),get(r,'notes'),get(r,'status','idea'),get(r,'order_index',0),content,counts.words,counts.chars)
+      }
       const setNodeParent=this.db.prepare('UPDATE document_nodes SET parent_id=? WHERE id=?')
       for (const r of d.documentNodes) if(r.parent_id) setNodeParent.run(id(nodes,r.parent_id),id(nodes,r.id))
 
@@ -82,7 +89,7 @@ export class ProjectTransferService {
 
       for(const r of d.mindmaps) this.db.prepare('INSERT INTO mindmaps (id,project_id,name,order_index) VALUES (?,?,?,?)').run(id(mindmaps,r.id),newProjectId,get(r,'name'),get(r,'order_index',0))
       const remapRef=(r: Record<string,unknown>) => ({character:chars,location:locations,object:objects,event:events,chapter:nodes,scene:nodes}[String(r.node_type)]?.get(String(r.ref_id)) ?? get(r,'ref_id',null))
-      for(const r of d.mindmapNodes) this.db.prepare('INSERT INTO mindmap_nodes (id,project_id,mindmap_id,node_type,ref_id,label,description,group_id,pos_x,pos_y,color) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(id(mindmapNodes,r.id),newProjectId,id(mindmaps,r.mindmap_id),get(r,'node_type'),remapRef(r),get(r,'label'),get(r,'description'),null,get(r,'pos_x',0),get(r,'pos_y',0),get(r,'color'))
+      for(const r of d.mindmapNodes) this.db.prepare('INSERT INTO mindmap_nodes (id,project_id,mindmap_id,node_type,ref_id,label,description,group_id,pos_x,pos_y,color,order_index) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').run(id(mindmapNodes,r.id),newProjectId,id(mindmaps,r.mindmap_id),get(r,'node_type'),remapRef(r),get(r,'label'),get(r,'description'),null,get(r,'pos_x',0),get(r,'pos_y',0),get(r,'color'),get(r,'order_index',0)) // v0.4.1: i pacchetti precedenti non hanno order_index → 0 (ordine di inserimento)
       for(const r of d.mindmapNodes) if(r.group_id) this.db.prepare('UPDATE mindmap_nodes SET group_id=? WHERE id=?').run(id(mindmapNodes,r.group_id),id(mindmapNodes,r.id))
       for(const r of d.mindmapEdges) { const source=id(mindmapNodes,r.source_node_id), target=id(mindmapNodes,r.target_node_id); if(source && target) this.db.prepare('INSERT INTO mindmap_edges (id,project_id,mindmap_id,source_node_id,target_node_id,label,style) VALUES (?,?,?,?,?,?,?)').run(uuid(),newProjectId,id(mindmaps,r.mindmap_id),source,target,get(r,'label'),get(r,'style','solid')) }
       return newProjectId

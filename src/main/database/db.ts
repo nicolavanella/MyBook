@@ -2,12 +2,16 @@ import Database from 'better-sqlite3'
 import { app } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
-import { runMigrations } from './migrations/runner'
+import { runMigrations, getLatestMigrationVersion } from './migrations/runner'
 import { backfillSceneTags } from './migrations/backfill-scene-tags'
+import { recountWordsAndChars } from './migrations/recount-words'
 import { getConfig } from '../config'
 
 /** Versione della migrazione che introduce scene_tags (019_scene_tags.sql): se applicata solo ora, va ripopolata dal contenuto già esistente — vedi backfillSceneTags. */
 const SCENE_TAGS_MIGRATION_VERSION = 19
+
+/** Versione della migrazione-segnaposto 027_recount_words.sql: se applicata solo ora, word_count/char_count esistenti vanno ricalcolati — vedi recountWordsAndChars. */
+const RECOUNT_WORDS_MIGRATION_VERSION = 27
 
 let db: Database.Database | null = null
 let dbFilePath: string | null = null
@@ -59,8 +63,17 @@ export function getDb(): Database.Database {
   if (newlyApplied.includes(SCENE_TAGS_MIGRATION_VERSION)) {
     backfillSceneTags(db)
   }
+  if (newlyApplied.includes(RECOUNT_WORDS_MIGRATION_VERSION)) {
+    const { nodes, revisions } = recountWordsAndChars(db)
+    console.log(`[db] conteggi ricalcolati (v0.4.2): ${nodes} scene, ${revisions} revisioni`)
+  }
 
   return db
+}
+
+/** Ultima migrazione conosciuta da QUESTA versione dell'app (vedi getLatestMigrationVersion). */
+export function getSupportedSchemaVersion(): number {
+  return getLatestMigrationVersion(resolveMigrationsDir())
 }
 
 export function closeDb(): void {

@@ -14,7 +14,7 @@ const CONTACT_EMAIL = ''
 const WEBSITE_URL = ''
 const REPOSITORY_URL = ''
 
-const TECHNOLOGIES = ['Electron', 'React', 'TypeScript', 'TipTap', 'SQLite (better-sqlite3)', 'React Flow']
+const TECHNOLOGIES = ['Electron', 'React', 'TypeScript', 'TipTap', 'SQLite (better-sqlite3)']
 
 function InfoSection({
   icon,

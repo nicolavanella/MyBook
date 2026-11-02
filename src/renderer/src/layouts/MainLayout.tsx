@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   FolderOpen,
@@ -28,6 +28,8 @@ import { shouldShowContextMenu } from '@renderer/lib/contextMenuGate'
 import { buildWindowTitle } from '@renderer/lib/windowTitle'
 import TodoPromptModal from '@renderer/components/TodoPromptModal'
 import StartupRecapModal from '@renderer/components/StartupRecapModal'
+import BackupSetupModal from '@renderer/components/BackupSetupModal'
+import { backupFrequencyAfterFolderChosen, shouldShowBackupPrompt, shouldShowRecap, shouldShowTodoPrompt } from '@shared/promptFlags'
 import type { AppSettings } from '@shared/schemas/settings.schema'
 import type { ProjectActivityRecap } from '@shared/ipc/channels'
 
@@ -47,6 +49,16 @@ const navItems = [
   // progetto, quindi non ha senso fuori da un progetto aperto).
   { to: '/settings', labelKey: 'nav.settings' as TranslationKey, icon: Settings, showWhen: 'hasProject' as const }
 ]
+
+/**
+ * Esito del prompt "To Do" (v0.4.2): `cancelled` = la persona ha scelto "Annulla" e
+ * l'azione che l'aveva fatto comparire (chiudere l'app, uscire dal progetto) NON va eseguita;
+ * `todo` = testo da salvare, o null se non c'è nulla da salvare ("Salta" o prompt non mostrato).
+ */
+interface TodoPromptResult {
+  cancelled: boolean
+  todo: string | null
+}
 
 export default function MainLayout(): JSX.Element {
   useTheme()
@@ -82,7 +94,7 @@ export default function MainLayout(): JSX.Element {
   // indipendentemente da quante volte l'utente cambia pagina) e prompt
   // "To Do" alla chiusura di un progetto o dell'intera app.
   const [recap, setRecap] = useState<ProjectActivityRecap[] | null>(null)
-  const [todoPrompt, setTodoPrompt] = useState<{ projectId: string; projectTitle: string; initialValue: string; onDone: (text: string | null) => void } | null>(null)
+  const [todoPrompt, setTodoPrompt] = useState<{ projectId: string; projectTitle: string; initialValue: string; onDone: (result: TodoPromptResult) => void } | null>(null)
 
   // v0.3.7: il recap compare SOLO all'apertura di un progetto (dall'elenco
   // Progetti, o quando l'app riprende da sola l'ultimo progetto attivo al
@@ -91,12 +103,56 @@ export default function MainLayout(): JSX.Element {
   // progetto" a tutti gli effetti). Non compare più un recap generale
   // all'avvio dell'app quando nessun progetto è ancora attivo (comportamento
   // della v0.3.6, rimosso su richiesta).
+  // v0.4.1: il recap aspetta il caricamento delle impostazioni (per rispettare "Non mostrare più") e si
+  // valuta UNA volta per progetto aperto: cambiare il flag in Impostazioni mentre il progetto è aperto
+  // non deve far comparire il recap a sorpresa.
+  const recapEvaluatedFor = useRef<string | null>(null)
   useEffect(() => {
-    if (!activeProjectId) return
+    if (!activeProjectId) {
+      recapEvaluatedFor.current = null // uscito dal progetto: alla prossima apertura (anche dello stesso progetto) il recap si rivaluta
+      return
+    }
+    if (!settings) return
+    if (recapEvaluatedFor.current === activeProjectId) return
+    recapEvaluatedFor.current = activeProjectId
+    if (!shouldShowRecap(settings)) return
     window.mybook.activityLog.recapForProject(activeProjectId).then((projectRecap: ProjectActivityRecap | null) => {
       if (projectRecap) setRecap([projectRecap])
     })
-  }, [activeProjectId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId, settings])
+
+  // v0.4.1 — richiesta della cartella di backup: una sola volta, al primo avvio senza cartella (vedi shared/promptFlags.ts).
+  // Si segna come "mostrata" subito, non alla risposta: così non ricompare nemmeno se l'app viene chiusa senza rispondere.
+  const [showBackupSetup, setShowBackupSetup] = useState(false)
+  const backupPromptHandled = useRef(false)
+  useEffect(() => {
+    if (!settings || backupPromptHandled.current) return
+    backupPromptHandled.current = true
+    if (!shouldShowBackupPrompt(settings)) return
+    setShowBackupSetup(true)
+    void window.mybook.settings.update({ backup_prompt_shown: true })
+  }, [settings])
+
+  /** Pubblica le nuove impostazioni a tutta l'app (stesso evento usato da Impostazioni). */
+  const broadcastSettings = (next: AppSettings) => window.dispatchEvent(new CustomEvent('mybook-settings-changed', { detail: next }))
+
+  const handleChooseBackupFolder = async (): Promise<boolean> => {
+    const folder = await window.mybook.settings.pickBackupFolder()
+    if (!folder) return false
+    const next = await window.mybook.settings.update({
+      backup_folder: folder,
+      backup_frequency: backupFrequencyAfterFolderChosen(settings?.backup_frequency)
+    })
+    broadcastSettings(next)
+    setShowBackupSetup(false)
+    return true
+  }
+
+  /** "Non mostrare più" (finestra "Prima di chiudere"): disattiva To Do e recap; si riattiva da Impostazioni > Log. */
+  const disableTodoAndRecap = async () => {
+    broadcastSettings(await window.mybook.settings.update({ todo_recap_enabled: false }))
+  }
 
   // v0.3.9: riapre il progetto nella stessa sezione in cui era stato chiuso
   // (Manoscritto, Personaggi, Statistiche...) invece di tornare sempre al
@@ -127,19 +183,19 @@ export default function MainLayout(): JSX.Element {
    * per l'uscita esplicita dal progetto (pulsante "Esci") sia per la
    * richiesta di chiusura dell'intera finestra (vedi l'effect più sotto).
    */
-  const promptTodoIfNeeded = (): Promise<string | null> => {
-    if (!activeProjectId || !(settings?.activity_log_enabled ?? true)) return Promise.resolve(null)
+  const promptTodoIfNeeded = (): Promise<TodoPromptResult> => {
+    if (!activeProjectId || !shouldShowTodoPrompt(settings)) return Promise.resolve({ cancelled: false, todo: null })
     const currentProjectId = activeProjectId
     return window.mybook.activityLog.getTodo(currentProjectId).then(
       (initialValue: string) =>
-        new Promise<string | null>((resolve) => {
+        new Promise<TodoPromptResult>((resolve) => {
           setTodoPrompt({
             projectId: currentProjectId,
             projectTitle: project?.title ?? '',
             initialValue,
-            onDone: (text) => {
+            onDone: (result) => {
               setTodoPrompt(null)
-              resolve(text)
+              resolve(result)
             }
           })
         })
@@ -147,7 +203,8 @@ export default function MainLayout(): JSX.Element {
   }
 
   const handleExit = async () => {
-    const todo = await promptTodoIfNeeded()
+    const { cancelled, todo } = await promptTodoIfNeeded()
+    if (cancelled) return // v0.4.2: "Annulla" nel prompt → si resta nel progetto
     if (todo !== null) await window.mybook.activityLog.setTodo(activeProjectId as string, todo)
     exitProject()
     navigate('/projects') // esplicito: senza, si resta sulla route corrente
@@ -155,13 +212,25 @@ export default function MainLayout(): JSX.Element {
   }
 
   // Chiusura dell'intera finestra/app: il main intercetta il primo tentativo
-  // e aspetta questa conferma (vedi src/main/index.ts) prima di chiudere
-  // davvero, dando tempo al prompt di comparire se serve.
+  // e aspetta questa conferma (vedi src/main/index.ts e quit-coordinator.ts)
+  // prima di chiudere davvero, dando tempo al prompt di comparire se serve.
+  // v0.4.2: (1) si risponde SUBITO con ackQuit, così il main sa che il renderer
+  // c'è e attende la persona senza limite di tempo (prima, dopo 5 secondi la
+  // finestra si chiudeva da sola perdendo la nota in scrittura); (2) "Annulla"
+  // nel prompt lascia la finestra aperta (cancelQuit).
   useEffect(() => {
     return window.mybook.app.onQuitRequested(() => {
-      promptTodoIfNeeded().then((todo) => {
-        window.mybook.app.confirmQuit({ projectId: activeProjectId ?? null, todo: todo ?? undefined })
-      })
+      void window.mybook.app.ackQuit()
+      promptTodoIfNeeded()
+        .then(({ cancelled, todo }) => {
+          if (cancelled) return window.mybook.app.cancelQuit()
+          return window.mybook.app.confirmQuit({ projectId: activeProjectId ?? null, todo: todo ?? undefined })
+        })
+        .catch(() => {
+          // Errore imprevisto nel prompt (es. lettura del To Do fallita): meglio chiudere senza
+          // salvare la nota che rendere l'app impossibile da chiudere.
+          void window.mybook.app.confirmQuit({ projectId: null })
+        })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProjectId, project, settings])
@@ -394,12 +463,20 @@ export default function MainLayout(): JSX.Element {
         <TodoPromptModal
           projectTitle={todoPrompt.projectTitle}
           initialValue={todoPrompt.initialValue}
-          onSubmit={(text) => todoPrompt.onDone(text)}
-          onSkip={() => todoPrompt.onDone(null)}
+          onSubmit={(text, dontShowAgain) => {
+            if (dontShowAgain) void disableTodoAndRecap()
+            todoPrompt.onDone({ cancelled: false, todo: text })
+          }}
+          onSkip={(dontShowAgain) => {
+            if (dontShowAgain) void disableTodoAndRecap()
+            todoPrompt.onDone({ cancelled: false, todo: null })
+          }}
+          onCancel={() => todoPrompt.onDone({ cancelled: true, todo: null })}
         />
       )}
 
       {recap && <StartupRecapModal recap={recap} onClose={() => setRecap(null)} />}
+      {showBackupSetup && <BackupSetupModal onChoose={handleChooseBackupFolder} onLater={() => setShowBackupSetup(false)} />}
     </div>
   )
 }
