@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5f7f4">
+<meta name="description" content="Scarica MyBook, l'ambiente offline-first per scrivere e organizzare storie. Installer per Windows, macOS e Linux.">
+<meta property="og:title" content="Scarica MyBook"><meta property="og:description" content="Download gratuito di MyBook. Scegli l'installer per il tuo sistema operativo.">
+<title>Scarica MyBook</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/nicolavanella/MyBook/main/build/icon.png">
+<script defer src="https://cloud.umami.is/script.js" data-website-id="INSERISCI-UMAMI-WEBSITE-ID"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f7f4;--paper:#fff;--ink:#172f32;--muted:#667574;--teal:#087b70;--teal2:#dcefeb;--line:#dce5e1;--serif:"DM Serif Display",Georgia,serif;--sans:"DM Sans",Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}.wrap{width:min(1060px,calc(100% - 40px));margin:auto}.site-header{height:78px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line)}.header-inner{height:100%;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;letter-spacing:-.05em}.brand img{width:38px;height:38px}.nav{display:flex;gap:24px;align-items:center;font-size:12px;font-weight:600;color:#586a68}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;border-radius:7px;background:var(--teal);color:#fff;font-size:13px;font-weight:700;border:0;cursor:pointer}.btn:hover{background:#075f57}.btn.secondary{background:#fff;color:var(--ink);border:1px solid #b9cbc5}.hero{padding:76px 0 82px;max-width:760px;text-align:center}.eyebrow{font-size:10px;letter-spacing:.17em;text-transform:uppercase;font-weight:700;color:var(--teal)}h1{font:clamp(48px,7vw,72px)/1 var(--serif);letter-spacing:-.04em;margin:18px 0}.lead{font-size:15px;line-height:1.85;color:var(--muted);max-width:590px;margin:0 auto 28px}.download-card{max-width:600px;margin:30px auto 0;padding:30px;background:#fff;border:1px solid var(--line);border-radius:13px;box-shadow:0 24px 70px #183b3517}.download-card .btn{min-width:min(100%,340px);min-height:52px;font-size:14px}.meta{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;font-size:11px;color:#71807b}.pill{display:inline-flex;padding:7px 11px;background:#e6f2ee;color:#236d62;border-radius:30px;font-weight:700}.status{font-size:11px;line-height:1.6;color:#71807b;margin:13px 0 0;min-height:18px}.systems{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:22px}.systems span{font-size:10px;color:#667574;background:#edf2ef;border-radius:5px;padding:7px 10px}.alternatives{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:16px auto 0;max-width:520px}.alternatives a{font-size:11px;color:var(--teal);text-decoration:underline;text-underline-offset:3px}.release-links{margin-top:18px;font-size:11px;color:var(--muted)}.release-links a{color:var(--teal);text-decoration:underline;text-underline-offset:3px}.release-date{font-size:10px;color:#82918b;margin-top:6px}.below{text-align:center;padding:0 0 76px}.below p{font-size:12px;color:var(--muted);line-height:1.8}.below a{text-decoration:underline;text-underline-offset:3px;color:var(--teal)}footer{border-top:1px solid var(--line);padding:24px 0}.foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.foot small{font-size:10px;color:#82918b}.footlinks{display:flex;gap:18px;font-size:11px;color:#64756e}@media(max-width:560px){.wrap{width:calc(100% - 32px)}.site-header{height:68px}.nav{gap:12px;font-size:11px}.hero{padding:58px 0 62px}.download-card{padding:22px 16px}}
+</style></head>
+<body>
+<header class="site-header"><div class="wrap header-inner"><a class="brand" href="index.html"><img src="https://raw.githubusercontent.com/nicolavanella/MyBook/main/build/icon.png" alt="">mybook</a><nav class="nav"><a href="index.html">Il progetto</a><a href="https://github.com/nicolavanella/MyBook" target="_blank" rel="noopener">GitHub ↗</a></nav></div></header>
+<main><section class="wrap hero"><div class="eyebrow">Download gratuito</div><h1>Porta le tue storie<br>in <span style="color:var(--teal)">MyBook.</span></h1><p class="lead">Scarica l'ultima versione di MyBook. Rileviamo automaticamente il sistema operativo e proponiamo l'installer più adatto al tuo dispositivo.</p>
+<div class="download-card"><a class="btn" id="download-button" href="https://github.com/nicolavanella/MyBook/releases/latest" target="_blank" rel="noopener"><span aria-hidden="true">↓</span><span id="download-label">Caricamento installer…</span></a><div class="meta"><span id="release-version">Ricerca ultima release</span><span class="pill" id="download-count">Download: —</span></div><p class="status" id="download-status" aria-live="polite">Connessione a GitHub…</p><div class="release-date" id="release-date"></div><div class="alternatives" id="alternative-downloads" aria-label="Altri installer disponibili"></div><div class="release-links"><a href="https://github.com/nicolavanella/MyBook/releases" target="_blank" rel="noopener">Versioni precedenti</a> · <a href="https://github.com/nicolavanella/MyBook/releases" target="_blank" rel="noopener">Nightly e versioni di anteprima</a></div><div class="systems"><span>Windows</span><span>macOS</span><span>Linux</span></div></div></section>
+<section class="below wrap"><p>Il download è gratuito e il progetto è distribuito con licenza GNU GPL-3.0.</p><p>Vuoi conoscere meglio l'applicazione? <a href="index.html">Scopri MyBook</a> · <a href="https://github.com/nicolavanella/MyBook/releases" target="_blank" rel="noopener">Tutte le release</a> · <a href="https://github.com/nicolavanella/MyBook" target="_blank" rel="noopener">Codice sorgente</a></p></section></main>
+<footer><div class="wrap foot"><a class="brand" href="index.html"><img src="https://raw.githubusercontent.com/nicolavanella/MyBook/main/build/icon.png" alt="">mybook</a><small>© 2026 MyBook · Software libero GNU GPL-3.0</small><div class="footlinks"><a href="index.html">Progetto</a><a href="https://github.com/nicolavanella/MyBook">GitHub</a></div></div></footer>
+<script>
+(() => {
+ const button=document.getElementById('download-button');
+ const label=document.getElementById('download-label');
+ const version=document.getElementById('release-version');
+ const count=document.getElementById('download-count');
+ const status=document.getElementById('download-status');
+ const date=document.getElementById('release-date');
+ const alternatives=document.getElementById('alternative-downloads');
+ const repo='https://api.github.com/repos/nicolavanella/MyBook';
+ const ua=navigator.userAgent;
+ const win=/windows/i.test(ua), mac=/macintosh|mac os x/i.test(ua), linux=/linux/i.test(ua)&&!/android/i.test(ua);
+ const valid=n=>/\.(exe|msi|dmg|appimage|deb|rpm)$/i.test(n);
+ const platformScore=n=>{
+   const s=n.toLowerCase();
+   if(win) return /\.(exe|msi)$/.test(s)?100:0;
+   if(mac) return /\.dmg$/.test(s)?100:0;
+   if(linux) return /\.(appimage|deb|rpm)$/.test(s)?100:0;
+   return 1;
+ };
+ const archLabel=n=>{
+   const s=n.toLowerCase();
+   if(/arm64|aarch64/.test(s)) return 'Apple Silicon / ARM64';
+   if(/x64|x86_64|amd64/.test(s)) return 'Intel / x64';
+   return 'Installer';
+ };
+ const pretty=n=>n.replace(/[-_]/g,' ').replace(/\s+/g,' ').trim();
+ const formatDate=d=>d?new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}):'';
+ fetch(repo+'/releases/latest',{headers:{Accept:'application/vnd.github+json'}})
+  .then(r=>{if(!r.ok)throw Error('GitHub API non disponibile');return r.json()})
+  .then(release=>{
+   const assets=(release.assets||[]).filter(a=>valid(a.name));
+   if(!assets.length)throw Error('Nessun installer trovato nella release stabile');
+   const platformAssets=assets.filter(a=>platformScore(a.name)>0);
+   const selected=(platformAssets.length?platformAssets:assets).slice().sort((a,b)=>{
+     const archA=/arm64|aarch64/i.test(a.name)?1:0;
+     const archB=/arm64|aarch64/i.test(b.name)?1:0;
+     return platformScore(b.name)-platformScore(a.name) || archA-archB || a.name.localeCompare(b.name);
+   })[0];
+   button.href=selected.browser_download_url;
+   button.dataset.asset=selected.name;
+   button.dataset.version=release.tag_name||release.name||'';
+   button.removeAttribute('target');
+   label.textContent='Scarica '+pretty(selected.name);
+   version.textContent=(release.tag_name||release.name||'Ultima versione')+' · stabile';
+   date.textContent='Pubblicata il '+formatDate(release.published_at);
+   const total=assets.reduce((s,a)=>s+(Number(a.download_count)||0),0);
+   count.textContent='Download installer: '+total.toLocaleString('it-IT');
+   status.textContent='Versione stabile selezionata automaticamente. Puoi scegliere anche un altro installer qui sotto.';
+   alternatives.innerHTML='';
+   assets.filter(a=>a.name!==selected.name).forEach(a=>{
+     const link=document.createElement('a');
+     link.href=a.browser_download_url; link.textContent=pretty(a.name);
+     link.addEventListener('click',()=>track('download_click',{asset:a.name,version:release.tag_name||'',page:'download'}));
+     alternatives.appendChild(link);
+   });
+  })
+  .catch(()=>{
+   button.href='https://github.com/nicolavanella/MyBook/releases/latest';
+   button.target='_blank'; label.textContent='Apri l’ultima release stabile';
+   version.textContent='Release GitHub'; count.textContent='Download non disponibili';
+   status.textContent='Non è stato possibile recuperare automaticamente gli installer. Puoi sceglierli direttamente dalla pagina delle release.';
+  });
+ function track(event,data){if(window.umami?.track)window.umami.track(event,data)}
+ button.addEventListener('click',()=>track('download_click',{asset:button.dataset.asset||'latest-release',version:button.dataset.version||'latest',page:'download'}));
+ track('download_page_view');
+})();
+</script></body></html>

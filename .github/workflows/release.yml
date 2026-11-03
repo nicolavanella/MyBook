@@ -1,0 +1,145 @@
+name: Build and publish MyBook
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mybook-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows x64
+            os: windows-latest
+            command: build:win
+          - platform: macOS x64 + arm64
+            os: macos-14
+            command: build:mac
+          - platform: Linux x64
+            os: ubuntu-latest
+            command: build:linux
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer
+        run: npm run ${{ matrix.command }}
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Check release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Generated assets:"
+          find release-assets -maxdepth 1 -type f -printf '%f\n' | sort
+          test -n "$(find release-assets -maxdepth 1 -type f -print -quit)"
+
+      - name: Publish nightly prerelease (push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          SHORT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="nightly-${SHORT_SHA:0:12}"
+          TITLE="MyBook Nightly - ${SHORT_SHA:0:12}"
+          gh release create "$TAG" release-assets/* \
+            --repo "$REPOSITORY" \
+            --target "$COMMIT" \
+            --prerelease \
+            --title "$TITLE" \
+            --notes "Build automatica del branch main.\nCommit: $COMMIT\nQuesta è una versione preliminare, non una release stabile."
+
+      - name: Verify version tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          EXPECTED_TAG="v${PACKAGE_VERSION}"
+          if [ "$TAG_VERSION" != "$EXPECTED_TAG" ]; then
+            echo "::error::Il tag ($TAG_VERSION) non corrisponde alla versione in package.json ($EXPECTED_TAG)."
+            exit 1
+          fi
+
+      - name: Publish stable release (version tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" release-assets/* \
+            --repo "$REPOSITORY" \
+            --title "MyBook $TAG" \
+            --generate-notes
