@@ -86,7 +86,7 @@ jobs:
           find dist -maxdepth 1 -type f -exec cp {} artifacts/ \;
 
           echo "Installer files:"
-          find artifacts -maxdepth 1 -type f -printf '%f\n' | sort
+          ls -1 artifacts | sort
 
           test -n "$(find artifacts -maxdepth 1 -type f -print -quit)"
 
