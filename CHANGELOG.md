@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0
+## 0.5.1
 Rimossa la dipendenza da React Flow: i grafi della mappa concettuale usano un motore interno, pensato per poterlo personalizzare. Decisioni concordate: obiettivo *controllo e personalizzazione*; perimetro *equivalenza con l'attuale + correzione dei difetti trovati*; test *logica pura in Node + checklist manuale*.
 
 - **Nuovo motore dei grafi (nessuna libreria esterna)**
