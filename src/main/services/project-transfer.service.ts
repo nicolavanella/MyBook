@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { z } from 'zod'
 import { BookLanguageSchema } from '@shared/schemas/document.schema'
 import { countWordsAndChars } from '@shared/textAnalysis'
-import { app } from 'electron';
+import packageJson from '../../../package.json'
 
 const entityList = z.array(z.record(z.unknown())).default([])
 export const ProjectPackageSchema = z.object({
@@ -33,7 +33,7 @@ export class ProjectTransferService {
     const all = (sql: string) => this.db.prepare(sql).all(projectId) as Record<string, unknown>[]
     return {
       format: 'mybook-project', version: 1, exportedAt: new Date().toISOString(),
-      application: { name: 'MyBook', version: app.getVersion() }, project,
+      application: { name: 'MyBook', version: packageJson.version }, project,
       settings: (this.db.prepare('SELECT settings FROM project_settings WHERE project_id=?').get(projectId) as any)?.settings ?? '{}',
       data: {
         documentNodes: all('SELECT * FROM document_nodes WHERE project_id=?'),
