@@ -10,8 +10,13 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/nicolavanella/MyBook/main/build/icon.png">
 <title>MyBook — Dai forma alle tue storie</title>
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/nicolavanella/MyBook/main/build/icon.png">
-<!-- Umami: sostituisci WEBSITE_ID con l'ID del sito creato nella tua istanza Umami. -->
-<script defer src="https://cloud.umami.is/script.js" data-website-id="INSERISCI-UMAMI-WEBSITE-ID"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q6V7FK47DG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-Q6V7FK47DG ');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -122,6 +127,18 @@ footer{padding:25px 0;border-top:1px solid var(--line)}.foot{display:flex;justif
   document.querySelectorAll('.carousel-btn').forEach(button => {
     button.addEventListener('click', () => {
       track.scrollBy({ left: (button.dataset.direction === 'next' ? 1 : -1) * step(), behavior: 'smooth' });
+    });
+  });
+
+  // Traccia i clic che portano alla pagina di download.
+  document.querySelectorAll('a[href="download.html"]').forEach(link => {
+    link.addEventListener('click', () => {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'download_page_click', {
+          link_text: (link.textContent || '').trim(),
+          page_location: window.location.href
+        });
+      }
     });
   });
 })();

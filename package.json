@@ -1,6 +1,6 @@
 {
   "name": "mybook",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "MyBook — applicazione desktop per scrittura, organizzazione narrativa, worldbuilding, statistiche, versioning ed export",
   "main": "out/main/index.js",
   "author": "",
